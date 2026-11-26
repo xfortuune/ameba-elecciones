@@ -8,11 +8,11 @@ export type Picks = Record<Points, number | null>;
 export const POINTS: Points[] = [3, 2, 1];
 
 /** Cabecera común de papeleta (también se usa en la revisión). */
-export function BallotHeader({ voterName }: { voterName?: string }) {
+export function BallotHeader({ voterName, gold }: { voterName?: string; gold?: boolean }) {
   return (
     <div className="border-b-2 border-ink pb-4 text-center">
       <div className="mx-auto mb-3 flex w-fit items-center gap-2 rounded-full border border-ink px-3 py-0.5 text-[10px] font-bold uppercase tracking-[0.3em]">
-        Papeleta oficial
+        {gold ? "Edición creador ✦" : "Papeleta oficial"}
       </div>
       <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-ink-soft">AMEBA CITY · 2026</p>
       <h2 className="mt-1 font-serif text-[1.35rem] leading-tight font-bold uppercase sm:text-2xl">
@@ -41,6 +41,7 @@ export function InkCross() {
 }
 
 type Props = {
+  gold?: boolean;
   voter: VoterStatus;
   candidates: VoterStatus[];
   picks: Picks;
@@ -50,7 +51,7 @@ type Props = {
   onNext: () => void;
 };
 
-export function BallotPaper({ voter, candidates, picks, onChange, onCancel, onNext }: Props) {
+export function BallotPaper({ voter, candidates, picks, onChange, onCancel, onNext, gold }: Props) {
   const complete = POINTS.every((p) => picks[p] !== null);
 
   /** Marcar un recuadro: cada puntuación solo puede ir a una persona y cada persona recibe una sola puntuación. */
@@ -71,8 +72,8 @@ export function BallotPaper({ voter, candidates, picks, onChange, onCancel, onNe
 
   return (
     <div className="space-y-5">
-      <article className="paper animate-rise rounded-sm px-4 pt-5 pb-6 sm:px-7">
-        <BallotHeader voterName={voter.name} />
+      <article className={`paper animate-rise rounded-sm px-4 pt-5 pb-6 sm:px-7 ${gold ? "ring-4 ring-gold bg-[linear-gradient(180deg,#f3dc8f_0%,var(--paper)_38%)]" : ""}`}>
+        <BallotHeader voterName={voter.name} gold={gold} />
 
         <ol className="mt-4 space-y-1 text-[13px] leading-snug text-ink-soft">
           <li>

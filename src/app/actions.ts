@@ -25,3 +25,14 @@ export async function submitVoteAction(ballot: unknown): Promise<VoteResult> {
 export async function cancelVoterSessionAction(): Promise<void> {
   await endVoterSession();
 }
+
+/** Voto de segunda vuelta. El votante sale de la cookie firmada. */
+export async function submitRunoffVoteAction(candidateId: unknown): Promise<VoteResult> {
+  const voterId = await getVoterSession();
+  if (voterId === null) {
+    return { ok: false, code: "no_session", message: "Tu sesión ha caducado. Vuelve a meter tu PIN." };
+  }
+  const result = await getElection().runoffVote(voterId, candidateId);
+  if (result.ok || result.code === "already_voted") await endVoterSession();
+  return result;
+}

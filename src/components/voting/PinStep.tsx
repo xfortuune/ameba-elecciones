@@ -9,7 +9,7 @@ type Props = {
   voter: VoterStatus;
   notice?: string | null;
   onBack: () => void;
-  onSuccess: () => void;
+  onSuccess: (mode: "main" | "runoff") => void;
   onAlreadyVoted: () => void;
 };
 
@@ -29,7 +29,7 @@ export function PinStep({ voter, notice, onBack, onSuccess, onAlreadyVoted }: Pr
     setError(null);
     try {
       const res = await loginAction(voter.id, value);
-      if (res.ok) return onSuccess();
+      if (res.ok) return onSuccess(res.mode);
       setError(res.message);
       setPin("");
       setShake(true);

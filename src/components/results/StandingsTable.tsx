@@ -42,6 +42,11 @@ export function StandingsTable({ standings, blankNames = [] }: { standings: Stan
                 <Breakdown pts={3} n={s.threes} />
                 <Breakdown pts={2} n={s.twos} />
                 <Breakdown pts={1} n={s.ones} />
+                {s.runoffVotes !== undefined && (
+                  <span className="rounded-sm bg-stamp-soft px-1.5 py-0.5" title="Votos en la segunda vuelta">
+                    <b className="text-stamp">{s.runoffVotes}</b> en 2ª vuelta
+                  </span>
+                )}
                 {s.bonus > 0 && (
                   <span
                     className="rounded-sm bg-gold/25 px-1.5 py-0.5"

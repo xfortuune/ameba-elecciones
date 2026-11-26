@@ -10,16 +10,22 @@ export async function GET() {
   const res = await getElection().results();
   const headers = { "Cache-Control": "no-store" };
 
-  if (!res.complete) {
+  if (!res.revealed) {
     return Response.json(
       {
-        complete: false,
-        message: "Los resultados se publican cuando hayan votado los 10.",
+        complete: res.complete,
+        revealed: false,
+        message: res.complete
+          ? "Están todos los votos: falta que la Junta Electoral abra la urna."
+          : "Los resultados se publican cuando hayan votado los 10.",
         votedCount: res.status.votedCount,
         total: res.status.total,
       },
       { status: 403, headers },
     );
   }
-  return Response.json({ complete: true, standings: res.standings }, { headers });
+  return Response.json(
+    { complete: true, revealed: true, revealedAt: res.status.revealedAt, standings: res.standings, runoff: res.runoff },
+    { headers },
+  );
 }

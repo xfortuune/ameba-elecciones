@@ -12,14 +12,15 @@ type Props = {
   names: Record<number, string>;
   error: string | null;
   submitting: boolean;
+  gold?: boolean;
   onEdit: () => void;
   onConfirm: () => void;
 };
 
 /** Easter egg: a estos votantes la firma se les autoescribe y no la pueden cambiar. */
-const FORCED_SIGNATURES: Record<string, string> = { Kike: "soy calvo" };
+export const FORCED_SIGNATURES: Record<string, string> = { Kike: "soy calvo" };
 
-export function BallotReview({ voter, picks, names, error, submitting, onEdit, onConfirm }: Props) {
+export function BallotReview({ voter, picks, names, error, submitting, gold, onEdit, onConfirm }: Props) {
   const [signed, setSigned] = useState(false);
 
   return (
@@ -29,8 +30,10 @@ export function BallotReview({ voter, picks, names, error, submitting, onEdit, o
         <p className="mt-1 font-semibold text-stamp">Una vez depositada, no podrás cambiarla.</p>
       </div>
 
-      <article className="paper animate-rise relative overflow-hidden rounded-sm px-5 pt-5 pb-7 sm:px-8">
-        <BallotHeader voterName={voter.name} />
+      <article
+        className={`paper animate-rise relative overflow-hidden rounded-sm px-5 pt-5 pb-7 sm:px-8 ${gold ? "ring-4 ring-gold bg-[linear-gradient(180deg,#f3dc8f_0%,var(--paper)_38%)]" : ""}`}
+      >
+        <BallotHeader voterName={voter.name} gold={gold} />
         <ul className="mt-5 space-y-3">
           {POINTS.map((p) => (
             <li key={p} className="flex items-center gap-4 border-b border-rule pb-3">

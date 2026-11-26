@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AdminControls, AdminLogin, VoterAdminList } from "@/components/admin/AdminClient";
+import { ScheduleForm, UrnControls } from "@/components/admin/ElectionControls";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { Masthead } from "@/components/Masthead";
 import { Progress } from "@/components/Progress";
 import { getElection } from "@/lib/server/election";
@@ -11,9 +13,11 @@ export const metadata: Metadata = { title: "Admin · Elecciones AMEBA CITY" };
 async function AdminGate() {
   if (!(await isAdmin())) return <AdminLogin />;
 
-  const status = await getElection().status();
+  const election = getElection();
+  const [status, proposal] = await Promise.all([election.status(), election.runoffProposal()]);
   return (
     <div className="space-y-6">
+      <LiveRefresh />
       <section className="paper space-y-5 rounded-sm p-6">
         <h2 className="font-serif text-xl font-bold">Estado de la votación</h2>
         <Progress voted={status.votedCount} total={status.total} />
@@ -28,6 +32,8 @@ async function AdminGate() {
           guardan sin vincular al votante.
         </p>
       </section>
+      <UrnControls status={status} proposal={proposal} />
+      <ScheduleForm opensAt={status.opensAt} closesAt={status.closesAt} />
       <AdminControls />
     </div>
   );

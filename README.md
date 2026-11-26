@@ -96,11 +96,22 @@ Protegido con `ADMIN_PASSWORD` (cookie firmada de 8 h). Permite:
 - **Regenerar PINs:** se muestran una sola vez, con botón para copiarlos.
 - **Resetear votación:** borra todos los votos y desbloquea a todo el mundo.
 
+### El día de la votación
+1. **Horario (opcional):** en /admin → *Horario de votación* fija cuándo abre y cierra. Antes de abrir, el inicio muestra una cuenta atrás y los nombres bloqueados; al llegar la hora se desbloquea solo.
+2. **Progreso en directo:** inicio, resultados y admin se actualizan solos cada pocos segundos, sin recargar.
+3. **Si alguien no viene:** márcalo como ausente (voto en blanco) para poder cerrar el recuento.
+4. **Abrir la urna:** con los 10 votos, los resultados NO se publican solos. Pulsa *Abrir la urna para todos* (en /admin o en /resultados si estás como admin) y a todo el mundo le arranca la cuenta atrás **a la vez** (8 s de margen).
+5. **Segunda vuelta:** si hay empate total en el 1º (o en el 2º, la vicepresidencia), /admin ofrece lanzarla. Cada uno vota a **uno** de los empatados (los ausentes no votan); se ve en directo cuántos han votado y el resultado al terminar. Si alguien no aparece, *Cerrar y contar ya*.
+
+### Mantener Supabase despierto
+El plan gratuito de Supabase se pausa tras 7 días sin actividad. `vercel.json` programa un **cron diario** que llama a `/api/keepalive` y lo mantiene activo; no tienes que hacer nada. Si quieres que solo el cron pueda llamar a esa ruta, añade en Vercel una variable `CRON_SECRET` con cualquier texto largo.
+
 ### API pública
 | Ruta | Devuelve |
 |---|---|
 | `GET /api/estado` | `{ total, votedCount, complete, voters: [{ id, name, hasVoted }] }` |
-| `GET /api/resultados` | `403` mientras falten votos · `{ complete: true, standings }` al terminar |
+| `GET /api/resultados` | `403` hasta que estén todos los votos **y** se abra la urna · luego `{ standings, runoff }` |
+| `GET /api/keepalive` | Lo usa el cron diario de Vercel |
 
 ---
 
@@ -113,7 +124,7 @@ npm run typecheck
 npm run lint
 ```
 
-**Sin Supabase:** pon `USE_MEMORY_STORE=1` en `.env.local` (más `ADMIN_PASSWORD` y `SESSION_SECRET`). La app usa una BD en memoria y muestra los PINs de prueba en la consola. Con `MEMORY_STORE_SEED=1` precarga 10 votos para ver la página de resultados. Esto solo funciona en desarrollo; en producción se ignora.
+**Sin Supabase:** pon `USE_MEMORY_STORE=1` en `.env.local` (más `ADMIN_PASSWORD` y `SESSION_SECRET`). La app usa una BD en memoria y muestra los PINs de prueba en la consola. Con `MEMORY_STORE_SEED=1` precarga 10 votos para ver la página de resultados, y con `MEMORY_STORE_SEED=empate` precarga un empate en el 1º para probar la segunda vuelta. Esto solo funciona en desarrollo; en producción se ignora.
 
 ### Tests
 - `tests/tally.test.ts`: recuento y los tres niveles de desempate.
@@ -144,6 +155,6 @@ src/components/              UI (papeleta, podio, etc.)
 ```
 
 ### Notas
-- **Si actualizas la app y el esquema ha cambiado**, vuelve a ejecutar `supabase/schema.sql` entero en el SQL Editor: es seguro re-ejecutarlo y no borra votos.
+- **Si actualizas la app y el esquema ha cambiado** (por ejemplo, tras añadir el horario y la segunda vuelta), vuelve a ejecutar `supabase/schema.sql` entero en el SQL Editor: es seguro re-ejecutarlo y no borra votos.
 - El plan gratuito de Supabase **pausa el proyecto tras 7 días sin actividad**. Si pasa, entra en el dashboard y pulsa *Restore*.
 - Para cambiar participantes, edita `src/lib/participants.ts` y vuelve a ejecutar `npm run generate-pins`.

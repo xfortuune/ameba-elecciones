@@ -27,6 +27,16 @@ export function getElection(): Election {
         for (const { voter, ballot } of SCENARIO) await election.vote(voter, ballot);
         console.log("[USE_MEMORY_STORE] Precargados los 10 votos de prueba.");
       }
+      if (process.env.MEMORY_STORE_SEED === "empate") {
+        // Fortune (1) y Adrian (2) empatan en todo en el 1º → permite probar la segunda vuelta
+        await election.vote(1, { first: 3, second: 4, third: 5 });
+        await election.vote(2, { first: 3, second: 4, third: 5 });
+        for (const v of [3, 4, 5, 6, 7, 8, 9, 10]) {
+          const third = v === 3 ? 4 : 3;
+          await election.vote(v, v % 2 === 0 ? { first: 1, second: 2, third } : { first: 2, second: 1, third });
+        }
+        console.log("[USE_MEMORY_STORE] Precargados 10 votos con empate en el 1º puesto.");
+      }
     });
     return election;
   }

@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { RevealButton } from "@/components/admin/ElectionControls";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { Footer, Masthead } from "@/components/Masthead";
 import { Progress } from "@/components/Progress";
 import { ResultsReveal } from "@/components/results/ResultsReveal";
+import type { ResultsResponse } from "@/lib/election";
 import { getElection } from "@/lib/server/election";
+import { isAdmin } from "@/lib/server/session";
 
 export const metadata: Metadata = {
   title: "Resultados · Elecciones AMEBA CITY",
@@ -16,41 +20,76 @@ async function Results() {
   const res = await getElection().results();
 
   if (!res.complete) {
-    const missing = res.status.voters.filter((v) => !v.hasVoted);
+    return <Pending res={res} />;
+  }
+
+  if (!res.revealed) {
+    const admin = await isAdmin();
     return (
-      <section className="paper space-y-6 rounded-sm p-6">
-        <div className="text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-stamp">Escrutinio pendiente</p>
-          <h2 className="mt-1 font-serif text-2xl font-bold">La urna sigue cerrada</h2>
-          <p className="mt-2 text-sm text-ink-soft">
-            Los resultados se publicarán en cuanto hayan votado los {res.status.total}.
+      <section className="paper animate-rise space-y-6 rounded-sm px-6 py-10 text-center">
+        <LiveRefresh />
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-stamp">Votación cerrada</p>
+          <h2 className="mt-2 font-serif text-3xl font-bold">Los 10 votos están en la urna</h2>
+          <p className="mx-auto mt-3 max-w-sm text-ink-soft">
+            {admin
+              ? "Cuando estéis todos mirando, abre la urna: el escrutinio empezará a la vez para todos."
+              : "Esperando a que la Junta Electoral abra la urna. No cierres esta página: empezará sola."}
           </p>
         </div>
-        <Progress voted={res.status.votedCount} total={res.status.total} />
-        <div>
-          <h3 className="text-sm font-bold uppercase tracking-wider text-ink-soft">
-            Faltan por votar ({missing.length})
-          </h3>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {missing.map((v) => (
-              <li key={v.id} className="rounded-full border-2 border-ink bg-white px-3 py-1 font-serif font-semibold">
-                {v.name}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <Link href="/" className="block rounded-sm bg-stamp px-4 py-3 text-center font-bold uppercase tracking-wider text-white">
-          Ir a votar
-        </Link>
+        {admin ? (
+          <RevealButton big />
+        ) : (
+          <p className="animate-pulse text-sm font-semibold text-ink-soft">● En directo</p>
+        )}
       </section>
     );
   }
 
   return (
-    <ResultsReveal
-      standings={res.standings}
-      blankNames={res.status.voters.filter((v) => v.blank).map((v) => v.name)}
-    />
+    <>
+      <LiveRefresh />
+      <ResultsReveal
+        standings={res.standings}
+        blankNames={res.status.voters.filter((v) => v.blank).map((v) => v.name)}
+        revealedAt={res.status.revealedAt!}
+        serverNow={res.status.serverNow}
+        runoff={res.runoff}
+      />
+    </>
+  );
+}
+
+/** Faltan votos: progreso y quién falta (nada de resultados). */
+function Pending({ res }: { res: ResultsResponse }) {
+  const missing = res.status.voters.filter((v) => !v.hasVoted);
+  return (
+    <section className="paper space-y-6 rounded-sm p-6">
+      <LiveRefresh />
+      <div className="text-center">
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-stamp">Escrutinio pendiente</p>
+        <h2 className="mt-1 font-serif text-2xl font-bold">La urna sigue cerrada</h2>
+        <p className="mt-2 text-sm text-ink-soft">
+          Los resultados se publicarán en cuanto hayan votado los {res.status.total}.
+        </p>
+      </div>
+      <Progress voted={res.status.votedCount} total={res.status.total} />
+      <div>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-ink-soft">
+          Faltan por votar ({missing.length})
+        </h3>
+        <ul className="mt-3 flex flex-wrap gap-2">
+          {missing.map((v) => (
+            <li key={v.id} className="rounded-full border-2 border-ink bg-white px-3 py-1 font-serif font-semibold">
+              {v.name}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <Link href="/" className="block rounded-sm bg-stamp px-4 py-3 text-center font-bold uppercase tracking-wider text-white">
+        Ir a votar
+      </Link>
+    </section>
   );
 }
 

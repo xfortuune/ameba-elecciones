@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { VoterStatus } from "@/lib/election";
 
 /** Animación de la papeleta entrando en la urna + confirmación. */
-export function VoteCast({ voter }: { voter: VoterStatus }) {
+export function VoteCast({ voter, runoff = false }: { voter: VoterStatus; runoff?: boolean }) {
   return (
     <section className="flex flex-col items-center py-4 text-center">
       <div className="relative h-56 w-56" aria-hidden="true">
@@ -31,8 +31,9 @@ export function VoteCast({ voter }: { voter: VoterStatus }) {
       </div>
       <h2 className="mt-6 font-serif text-2xl font-bold">¡Gracias, {voter.name}!</h2>
       <p className="mt-2 max-w-sm text-ink-soft">
-        Tu papeleta ya está en la urna. Es secreta y no se puede modificar. Los resultados se publicarán cuando
-        hayan votado los 10.
+        {runoff
+          ? "Tu voto de desempate ya está en la urna. Es secreto y no se puede modificar. El resultado se verá en cuanto vote todo el mundo."
+          : "Tu papeleta ya está en la urna. Es secreta y no se puede modificar. Los resultados se publicarán cuando hayan votado los 10."}
       </p>
       <Link
         href="/resultados"

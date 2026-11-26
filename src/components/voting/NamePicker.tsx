@@ -2,7 +2,15 @@
 
 import type { VoterStatus } from "@/lib/election";
 
-export function NamePicker({ voters, onPick }: { voters: VoterStatus[]; onPick: (v: VoterStatus) => void }) {
+export function NamePicker({
+  voters,
+  onPick,
+  locked = false,
+}: {
+  voters: VoterStatus[];
+  onPick: (v: VoterStatus) => void;
+  locked?: boolean;
+}) {
   return (
     <section className="paper rounded-sm p-5 sm:p-6">
       <h2 className="font-serif text-xl font-bold">¿Quién eres?</h2>
@@ -14,10 +22,10 @@ export function NamePicker({ voters, onPick }: { voters: VoterStatus[]; onPick: 
           <li key={v.id}>
             <button
               type="button"
-              disabled={v.hasVoted}
+              disabled={v.hasVoted || locked}
               onClick={() => onPick(v)}
               className={
-                v.hasVoted
+                v.hasVoted || locked
                   ? "flex h-full min-h-16 w-full cursor-not-allowed flex-col items-start justify-center rounded-sm border border-dashed border-rule bg-paper-edge/50 px-4 py-3 text-left text-ink-soft/60"
                   : "flex h-full min-h-16 w-full flex-col items-start justify-center rounded-sm border-2 border-ink bg-paper px-4 py-3 text-left shadow-[3px_3px_0_var(--ink)] transition active:translate-x-[3px] active:translate-y-[3px] active:shadow-none hover:bg-white"
               }

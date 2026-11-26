@@ -38,16 +38,18 @@ body {
   color: var(--ink);
 }
 
-/* Papel con un leve grano */
-.paper {
-  background-color: var(--paper);
-  background-image:
-    linear-gradient(transparent 0, transparent 100%),
-    radial-gradient(rgb(120 100 60 / 0.05) 1px, transparent 1px);
-  background-size: auto, 4px 4px;
-  box-shadow:
-    0 1px 0 var(--paper-edge),
-    0 12px 30px -12px rgb(60 45 20 / 0.35);
+@layer components {
+  /* Papel con un leve grano */
+  .paper {
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(transparent 0, transparent 100%),
+      radial-gradient(rgb(120 100 60 / 0.05) 1px, transparent 1px);
+    background-size: auto, 4px 4px;
+    box-shadow:
+      0 1px 0 var(--paper-edge),
+      0 12px 30px -12px rgb(60 45 20 / 0.35);
+  }
 }
 
 .perforated {

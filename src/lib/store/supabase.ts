@@ -97,6 +97,62 @@ export function createSupabaseStore(url: string, serviceRoleKey: string): VoteSt
       return "ok";
     },
 
+    async getSettings() {
+      const { data, error } = await db
+        .from("election_settings")
+        .select("opens_at, closes_at, revealed_at, runoff_candidates, runoff_closed")
+        .eq("id", 1)
+        .maybeSingle();
+      if (error) fail("getSettings", error);
+      const d = (data ?? {}) as Record<string, unknown>;
+      const date = (v: unknown) => (typeof v === "string" ? new Date(v) : null);
+      return {
+        opensAt: date(d.opens_at),
+        closesAt: date(d.closes_at),
+        revealedAt: date(d.revealed_at),
+        runoffCandidates: Array.isArray(d.runoff_candidates) ? (d.runoff_candidates as number[]) : null,
+        runoffClosed: d.runoff_closed === true,
+      };
+    },
+
+    async updateSettings(patch) {
+      const row: Record<string, unknown> = { id: 1 };
+      const iso = (v: Date | null) => (v ? v.toISOString() : null);
+      if ("opensAt" in patch) row.opens_at = iso(patch.opensAt ?? null);
+      if ("closesAt" in patch) row.closes_at = iso(patch.closesAt ?? null);
+      if ("revealedAt" in patch) row.revealed_at = iso(patch.revealedAt ?? null);
+      if ("runoffCandidates" in patch) row.runoff_candidates = patch.runoffCandidates ?? null;
+      if ("runoffClosed" in patch) row.runoff_closed = patch.runoffClosed ?? false;
+      const { error } = await db.from("election_settings").upsert(row, { onConflict: "id" });
+      if (error) fail("updateSettings", error);
+    },
+
+    async getRunoffVotedIds() {
+      const { data, error } = await db.from("runoff_participations").select("voter_id");
+      if (error) fail("getRunoffVotedIds", error);
+      return (data ?? []).map((r) => r.voter_id as number);
+    },
+
+    async castRunoffVote(voterId, candidateId) {
+      const { error } = await db.rpc("cast_runoff_vote", { p_voter: voterId, p_candidate: candidateId });
+      if (error) {
+        if (error.code === "23505") return "already_voted";
+        fail("castRunoffVote", error);
+      }
+      return "ok";
+    },
+
+    async getRunoffBallots() {
+      const { data, error } = await db.from("runoff_ballots").select("candidate_id");
+      if (error) fail("getRunoffBallots", error);
+      return (data ?? []).map((r) => r.candidate_id as number);
+    },
+
+    async resetRunoff() {
+      const { error } = await db.rpc("reset_runoff");
+      if (error) fail("resetRunoff", error);
+    },
+
     async getBallots(): Promise<Ballot[]> {
       const { data, error } = await db.from("ballots").select("first_id, second_id, third_id");
       if (error) fail("getBallots", error);

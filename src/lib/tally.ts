@@ -16,6 +16,8 @@ export type Standing = {
   position: number;
   /** true si comparte posición con alguien. */
   tied: boolean;
+  /** Votos recibidos en la segunda vuelta (solo los empatados que la disputaron). */
+  runoffVotes?: number;
 };
 
 /**

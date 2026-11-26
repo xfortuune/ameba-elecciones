@@ -10,6 +10,15 @@ export type VoterRecord = {
 
 export type PinFailure = { failedAttempts: number; lockedUntil: Date | null };
 
+/** Ajustes de la elección (una sola fila). */
+export type ElectionSettings = {
+  opensAt: Date | null;
+  closesAt: Date | null;
+  revealedAt: Date | null;
+  runoffCandidates: number[] | null;
+  runoffClosed: boolean;
+};
+
 /** Acceso a datos. Hay una implementación para Supabase y otra en memoria (tests). */
 export interface VoteStore {
   getVoter(id: number): Promise<VoterRecord | null>;
@@ -28,6 +37,13 @@ export interface VoteStore {
   castVote(voterId: number, ballot: Ballot): Promise<"ok" | "already_voted">;
   getBallots(): Promise<Ballot[]>;
   resetElection(): Promise<void>;
+  getSettings(): Promise<ElectionSettings>;
+  updateSettings(patch: Partial<ElectionSettings>): Promise<void>;
+  /** Segunda vuelta: quién ha votado ya y los votos (solo el candidato, sin votante). */
+  getRunoffVotedIds(): Promise<number[]>;
+  castRunoffVote(voterId: number, candidateId: number): Promise<"ok" | "already_voted">;
+  getRunoffBallots(): Promise<number[]>;
+  resetRunoff(): Promise<void>;
   /** Crea/actualiza los votantes con su hash de PIN y les quita bloqueos. */
   upsertVoters(voters: { id: number; name: string; pinHash: string }[]): Promise<void>;
 }

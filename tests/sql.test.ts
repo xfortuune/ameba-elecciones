@@ -42,6 +42,55 @@ function pgliteStore(pg: PGlite): VoteStore {
       const { rows } = await pg.query<{ undone: boolean }>("select undo_blank($1) as undone", [voter]);
       return rows[0].undone ? "ok" : "not_blank";
     },
+    async getSettings() {
+      const { rows } = await pg.query<{
+        opens_at: Date | null;
+        closes_at: Date | null;
+        revealed_at: Date | null;
+        runoff_candidates: number[] | null;
+        runoff_closed: boolean;
+      }>("select * from election_settings where id = 1");
+      const r = rows[0];
+      return {
+        opensAt: r.opens_at,
+        closesAt: r.closes_at,
+        revealedAt: r.revealed_at,
+        runoffCandidates: r.runoff_candidates,
+        runoffClosed: r.runoff_closed,
+      };
+    },
+    async updateSettings(patch) {
+      const cols: Record<string, unknown> = {};
+      if ("opensAt" in patch) cols.opens_at = patch.opensAt;
+      if ("closesAt" in patch) cols.closes_at = patch.closesAt;
+      if ("revealedAt" in patch) cols.revealed_at = patch.revealedAt;
+      if ("runoffCandidates" in patch) cols.runoff_candidates = patch.runoffCandidates;
+      if ("runoffClosed" in patch) cols.runoff_closed = patch.runoffClosed;
+      const keys = Object.keys(cols);
+      if (!keys.length) return;
+      await pg.query(
+        `update election_settings set ${keys.map((k, i) => `${k} = $${i + 1}`).join(", ")} where id = 1`,
+        keys.map((k) => cols[k]),
+      );
+    },
+    async getRunoffVotedIds() {
+      return (await pg.query<{ voter_id: number }>("select voter_id from runoff_participations")).rows.map((r) => r.voter_id);
+    },
+    async castRunoffVote(voter, candidate) {
+      try {
+        await pg.query("select cast_runoff_vote($1, $2)", [voter, candidate]);
+        return "ok";
+      } catch (e) {
+        if ((e as { code?: string }).code === "23505") return "already_voted";
+        throw e;
+      }
+    },
+    async getRunoffBallots() {
+      return (await pg.query<{ candidate_id: number }>("select candidate_id from runoff_ballots")).rows.map((r) => r.candidate_id);
+    },
+    async resetRunoff() {
+      await pg.query("select reset_runoff()");
+    },
     async registerPinFailure(id, max, mins) {
       const { rows } = await pg.query<{ attempts: number; lock_until: Date | null }>(
         "select * from register_pin_failure($1, $2, $3)",
@@ -139,6 +188,26 @@ describe("schema.sql en Postgres", () => {
     expect((await election.status()).blankCount).toBe(0);
   });
 
+  it("segunda vuelta en SQL: solo empatados, sin autovoto, un voto por persona", async () => {
+    await db.query("select reset_election()");
+    await db.query("update election_settings set runoff_candidates = '{1,2}', runoff_closed = false where id = 1");
+    await expect(db.query("select cast_runoff_vote(1::smallint, 1::smallint)")).rejects.toThrow(/SELF_VOTE/);
+    await expect(db.query("select cast_runoff_vote(3::smallint, 4::smallint)")).rejects.toThrow(/NOT_IN_RUNOFF/);
+    await db.query("select cast_runoff_vote(3::smallint, 1::smallint)");
+    await expect(db.query("select cast_runoff_vote(3::smallint, 2::smallint)")).rejects.toMatchObject({ code: "23505" });
+    await db.query("update election_settings set runoff_closed = true where id = 1");
+    await expect(db.query("select cast_runoff_vote(4::smallint, 1::smallint)")).rejects.toThrow(/NOT_IN_RUNOFF/);
+    const { rows } = await db.query<{ column_name: string }>(
+      "select column_name from information_schema.columns where table_name = 'runoff_ballots' order by ordinal_position",
+    );
+    expect(rows.map((r) => r.column_name)).toEqual(["id", "candidate_id"]);
+    await db.query("select reset_election()");
+    const s = await db.query<{ runoff_candidates: number[] | null; revealed_at: Date | null }>(
+      "select runoff_candidates, revealed_at from election_settings",
+    );
+    expect(s.rows[0]).toEqual({ runoff_candidates: null, revealed_at: null });
+  });
+
   it("las papeletas no tienen ninguna columna que identifique al votante", async () => {
     const { rows } = await db.query<{ column_name: string }>(
       "select column_name from information_schema.columns where table_name = 'ballots' order by ordinal_position",
@@ -154,6 +223,8 @@ describe("schema.sql en Postgres", () => {
       await expect(db.query("select reset_election()")).rejects.toThrow(/permission denied/);
       await expect(db.query("select cast_blank(1::smallint)")).rejects.toThrow(/permission denied/);
       await expect(db.query("select undo_blank(1::smallint)")).rejects.toThrow(/permission denied/);
+      await expect(db.query("select * from election_settings")).rejects.toThrow(/permission denied/);
+      await expect(db.query("select cast_runoff_vote(1::smallint, 2::smallint)")).rejects.toThrow(/permission denied/);
       await db.exec("reset role");
     }
   });

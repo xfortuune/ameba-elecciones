@@ -1,25 +1,34 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { Confetti } from "../results/Confetti";
 
 /**
  * Easter eggs: popups que salen a ciertos votantes justo después de meter
  * su PIN, antes de la papeleta. Para añadir uno nuevo, añade una entrada a
  * EASTER_EGGS con el nombre exacto del votante.
  */
-type EggProps = { onClose: () => void };
+type EggProps = {
+  onClose: () => void;
+  /** Modo creador: activa la papeleta dorada. */
+  onGold?: () => void;
+  /** Para las estadísticas del modo creador. */
+  votedCount?: number;
+};
 
 export const EASTER_EGGS: Record<string, (props: EggProps) => ReactNode> = {
   Valentin: CotizaEgg,
   Luis: LuisEgg,
   Ach: AchEgg,
   Kike: KikeEgg,
+  Fortune: (p) => <CreatorEgg {...p} name="Fortune" />,
+  Bruno: (p) => <CreatorEgg {...p} name="Bruno" />,
 };
 
 /** Pinta el easter egg de ese votante como componente (puede tener estado propio). */
-export function EasterEgg({ name, onClose }: { name: string; onClose: () => void }) {
+export function EasterEgg({ name, ...props }: EggProps & { name: string }) {
   const Egg = EASTER_EGGS[name];
-  return Egg ? <Egg onClose={onClose} /> : null;
+  return Egg ? <Egg {...props} /> : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -382,6 +391,132 @@ function KikeEgg({ onClose }: EggProps) {
       <div key={step} className="animate-rise [animation-duration:0.35s]">
         {screens[Math.min(step, total - 1)]}
       </div>
+    </EggModal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Fortune y Bruno: MODO CREADOR. Terminal que "hackea" la Junta y un panel
+// con ventajas puramente estéticas. No puede ver ni tocar votos.
+// ---------------------------------------------------------------------------
+const TERMINAL_LINES = (name: string) => [
+  `ameba-os v26.11 · sesión de ${name.toLowerCase()}`,
+  "$ sudo junta-electoral --modo-creador",
+  "[sudo] contraseña para creador: ********",
+  "Verificando firma de InfielesApps.com… OK",
+  "Cargando privilegios de creador… ██████████ 100%",
+  `✓ Acceso concedido. Bienvenido, ${name}.`,
+];
+
+function Terminal({ lines, onDone }: { lines: string[]; onDone: () => void }) {
+  const full = lines.join("\n");
+  const [shown, setShown] = useState(0);
+
+  useEffect(() => {
+    if (shown >= full.length) {
+      const t = setTimeout(onDone, 500);
+      return () => clearTimeout(t);
+    }
+    // Más rápido en los espacios, pausa en los saltos de línea
+    const ch = full[shown];
+    const t = setTimeout(() => setShown((n) => n + 1), ch === "\n" ? 260 : ch === " " ? 12 : 24);
+    return () => clearTimeout(t);
+  }, [shown, full, onDone]);
+
+  return (
+    <pre
+      className="mt-5 min-h-48 overflow-hidden rounded-sm bg-[#0d1117] p-4 text-left font-mono text-[12px] leading-relaxed whitespace-pre-wrap text-[#4ade80] shadow-inner"
+      aria-live="polite"
+    >
+      {full.slice(0, shown)}
+      <span className="animate-pulse">▋</span>
+    </pre>
+  );
+}
+
+function CreatorEgg({ onClose, onGold, votedCount = 0, name }: EggProps & { name: string }) {
+  const [stage, setStage] = useState<"terminal" | "panel">("terminal");
+  const [gold, setGold] = useState(false);
+  const [confetti, setConfetti] = useState(0);
+
+  const stats: [string, string][] = [
+    ["Votos en la urna", `${votedCount}/10`],
+    ["Calvos detectados", "1 (Kike)"],
+    ["Currículums enviados por Valentin", "0"],
+    ["Tés de menta servidos a Ach", "∞"],
+    ["Veces que Luis ha mirado cierto Instagram hoy", "37"],
+    ["Nivel de corrupción de la Junta", "0 % (de momento)"],
+  ];
+
+  return (
+    <EggModal onClose={onClose} labelledBy="egg-title" dismissible={stage === "panel"}>
+      {stage === "terminal" ? (
+        <>
+          <h2 id="egg-title" className="sr-only">
+            Modo creador
+          </h2>
+          <Terminal lines={TERMINAL_LINES(name)} onDone={() => setStage("panel")} />
+          <button
+            type="button"
+            onClick={() => setStage("panel")}
+            className="mt-3 text-xs text-ink-soft underline underline-offset-2"
+          >
+            Saltar
+          </button>
+        </>
+      ) : (
+        <div className="animate-rise">
+          <div
+            className="gold-shimmer mx-auto mt-5 w-fit rounded-sm px-4 py-1 text-xs font-black uppercase tracking-[0.3em] text-ink"
+          >
+            ✦ Modo creador ✦
+          </div>
+          <h2 id="egg-title" className="mt-3 font-serif text-2xl font-bold">
+            Bienvenido, {name}
+          </h2>
+          <p className="text-xs text-ink-soft">Panel reservado a los creadores de la app.</p>
+
+          <dl className="mt-4 divide-y divide-rule rounded-sm border border-rule bg-white text-left text-xs">
+            {stats.map(([k, v]) => (
+              <div key={k} className="flex items-center justify-between gap-3 px-3 py-1.5">
+                <dt className="text-ink-soft">{k}</dt>
+                <dd className="shrink-0 font-mono font-bold">{v}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setGold(true);
+                onGold?.();
+              }}
+              disabled={gold}
+              className={`rounded-sm border-2 px-2 py-2.5 text-sm font-bold transition ${
+                gold ? "border-gold bg-gold/20 text-ink" : "border-ink hover:bg-white"
+              }`}
+            >
+              {gold ? "✦ Papeleta dorada ✓" : "✦ Papeleta dorada"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfetti((n) => n + 1)}
+              className="rounded-sm border-2 border-ink px-2 py-2.5 text-sm font-bold transition hover:bg-white active:scale-95"
+            >
+              🎉 Cañón de confeti
+            </button>
+          </div>
+
+          <p className="mt-4 rounded-sm bg-paper-edge px-3 py-2 text-[11px] leading-snug text-ink-soft">
+            🔒 Por transparencia democrática, el modo creador <b className="text-ink">no puede ver ni cambiar votos</b>.
+            Ni siquiera el tuyo.
+          </p>
+
+          <CloseButton onClose={onClose}>A votar como un creador</CloseButton>
+          {confetti > 0 && <Confetti key={confetti} count={120} />}
+        </div>
+      )}
     </EggModal>
   );
 }

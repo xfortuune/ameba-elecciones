@@ -74,6 +74,17 @@ export async function runSimulation(election: Election, log: (msg: string) => vo
     const bad = await election.login(2, "12a4");
     assert(!bad.ok, "Un PIN con formato inválido no entra");
 
+    // --- Horario de votación ---
+    const t = Date.now();
+    await election.setSchedule(new Date(t + 3_600_000), null);
+    const early = await election.login(2, pins.get(2));
+    assert(!early.ok && early.code === "not_open", "Antes de la apertura no se puede entrar");
+    await election.setSchedule(new Date(t - 7_200_000), new Date(t - 3_600_000));
+    const late = await election.login(2, pins.get(2));
+    assert(!late.ok && late.code === "closed", "Después del cierre no se puede entrar");
+    await election.setSchedule(null, null);
+    log("✓ Horario de votación respetado (antes de abrir y después de cerrar)");
+
     // --- Votos inválidos ---
     const v = 2;
     const invalids: [string, unknown][] = [
@@ -113,9 +124,16 @@ export async function runSimulation(election: Election, log: (msg: string) => vo
     }
     log("✓ 10 votos emitidos; dobles votos y re-entradas bloqueados; resultados ocultos hasta el final");
 
+    // --- La urna sigue cerrada hasta que el admin la abre ---
+    const closed = await election.results();
+    assert(closed.complete && !closed.revealed && !("standings" in closed), "Sin abrir la urna no hay resultados");
+    assert((await election.reveal(0)).ok, "El admin abre la urna");
+    assert(!(await election.reveal(0)).ok, "La urna no se abre dos veces");
+    log("✓ Resultados ocultos hasta que el admin abre la urna");
+
     // --- Recuento ---
     const res = await election.results();
-    assert(res.complete, "Con 10 votos los resultados deben publicarse");
+    assert(res.complete && res.revealed, "Con 10 votos y la urna abierta, hay resultados");
     const got = res.standings.map(({ name, position, points, threes, twos, ones, tied }) => ({
       name, position, points, threes, twos, ones, tied,
     }));

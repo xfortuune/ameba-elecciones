@@ -17,8 +17,8 @@ export function Masthead({ subtitle }: { subtitle?: string }) {
           <MusicToggle />
           <ElectionInfo />
         </div>
-        <div className="min-w-0 pr-14">
-          <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-ink-soft">AMEBA CITY</p>
+        <div className="min-w-0 flex-1">
+          <p className="pr-16 whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.25em] text-ink-soft">AMEBA CITY</p>
           <h1 className="font-serif text-2xl leading-tight font-bold sm:text-3xl">
             Elecciones a Presidente del Grupo
           </h1>

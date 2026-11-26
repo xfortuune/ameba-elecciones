@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { Banner } from "@/components/Banner";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { Footer, Masthead } from "@/components/Masthead";
 import { VotingFlow } from "@/components/voting/VotingFlow";
 import { getElection } from "@/lib/server/election";
@@ -8,7 +9,12 @@ import { getElection } from "@/lib/server/election";
 async function Board() {
   await connection();
   const status = await getElection().status();
-  return <VotingFlow voters={status.voters} />;
+  return (
+    <>
+      <LiveRefresh />
+      <VotingFlow status={status} />
+    </>
+  );
 }
 
 export default function Home() {

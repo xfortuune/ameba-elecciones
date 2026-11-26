@@ -58,7 +58,7 @@ export function Podium({ standings, revealed }: { standings: Standing[]; reveale
               <span className="absolute inset-x-0 top-2 text-center font-serif text-3xl font-black text-white/90 drop-shadow sm:text-4xl">
                 {pos}º
               </span>
-              <span className="absolute inset-x-0 bottom-2 px-1 text-center text-[8.5px] font-bold uppercase tracking-[0.06em] text-white/90 sm:text-[10px] sm:tracking-[0.15em]">
+              <span className="absolute inset-x-0 bottom-2 px-0.5 text-center text-[7px] leading-tight font-bold uppercase tracking-normal min-[400px]:text-[8.5px] min-[400px]:tracking-[0.06em] text-white/90 sm:text-[10px] sm:tracking-[0.15em]">
                 {tier.label}
               </span>
             </div>

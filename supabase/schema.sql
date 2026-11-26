@@ -40,6 +40,32 @@ create table if not exists public.ballots (
 );
 
 -- ---------------------------------------------------------------------
+-- Ajustes de la elección (una sola fila, id = 1):
+--   opens_at / closes_at  → horario de votación (null = sin límite)
+--   revealed_at           → cuándo arranca el revelado sincronizado
+--   runoff_candidates     → empatados en segunda vuelta (null = no hay)
+--   runoff_closed         → el admin cerró la segunda vuelta a mano
+-- ---------------------------------------------------------------------
+create table if not exists public.election_settings (
+  id                smallint primary key default 1 check (id = 1),
+  opens_at          timestamptz,
+  closes_at         timestamptz,
+  revealed_at       timestamptz,
+  runoff_candidates smallint[],
+  runoff_closed     boolean not null default false
+);
+insert into public.election_settings (id) values (1) on conflict (id) do nothing;
+
+-- Segunda vuelta: mismo patrón secreto (quién / qué en tablas separadas).
+create table if not exists public.runoff_participations (
+  voter_id smallint primary key references public.voters (id) on delete cascade
+);
+create table if not exists public.runoff_ballots (
+  id           uuid primary key default gen_random_uuid(),
+  candidate_id smallint not null references public.voters (id) on delete cascade
+);
+
+-- ---------------------------------------------------------------------
 -- Seguridad: RLS activado SIN políticas → las claves públicas (anon /
 -- authenticated) no pueden leer ni escribir nada. Solo el servidor,
 -- con la service role key, accede a los datos.
@@ -47,9 +73,16 @@ create table if not exists public.ballots (
 alter table public.voters         enable row level security;
 alter table public.participations enable row level security;
 alter table public.ballots        enable row level security;
+alter table public.election_settings     enable row level security;
+alter table public.runoff_participations enable row level security;
+alter table public.runoff_ballots        enable row level security;
 
-revoke all on public.voters, public.participations, public.ballots from anon, authenticated;
-grant select, insert, update, delete on public.voters, public.participations, public.ballots to service_role;
+revoke all on public.voters, public.participations, public.ballots,
+              public.election_settings, public.runoff_participations, public.runoff_ballots
+  from anon, authenticated;
+grant select, insert, update, delete on public.voters, public.participations, public.ballots,
+              public.election_settings, public.runoff_participations, public.runoff_ballots
+  to service_role;
 
 -- ---------------------------------------------------------------------
 -- cast_vote: registra participación + papeleta en una sola transacción.
@@ -135,7 +168,46 @@ as $$
 begin
   delete from ballots where true;
   delete from participations where true;
+  delete from runoff_ballots where true;
+  delete from runoff_participations where true;
   update voters set failed_attempts = 0, locked_until = null where true;
+  -- El horario se conserva; el revelado y la segunda vuelta no.
+  update election_settings set revealed_at = null, runoff_candidates = null, runoff_closed = false where true;
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- cast_runoff_vote: voto de segunda vuelta (un candidato de los empatados).
+-- ---------------------------------------------------------------------
+create or replace function public.cast_runoff_vote(p_voter smallint, p_candidate smallint) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_voter = p_candidate then
+    raise exception 'SELF_VOTE' using errcode = 'P0001';
+  end if;
+  if not exists (
+    select 1 from election_settings
+     where p_candidate = any (runoff_candidates) and not runoff_closed
+  ) then
+    raise exception 'NOT_IN_RUNOFF' using errcode = 'P0001';
+  end if;
+  insert into runoff_participations (voter_id) values (p_voter);
+  insert into runoff_ballots (candidate_id) values (p_candidate);
+end;
+$$;
+
+-- reset_runoff: borra solo los votos de la segunda vuelta.
+create or replace function public.reset_runoff() returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from runoff_ballots where true;
+  delete from runoff_participations where true;
 end;
 $$;
 
@@ -169,6 +241,10 @@ begin
 end;
 $$;
 
+revoke execute on function public.cast_runoff_vote(smallint, smallint)           from public, anon, authenticated;
+revoke execute on function public.reset_runoff()                                 from public, anon, authenticated;
+grant  execute on function public.cast_runoff_vote(smallint, smallint)           to service_role;
+grant  execute on function public.reset_runoff()                                 to service_role;
 revoke execute on function public.cast_blank(smallint)                           from public, anon, authenticated;
 revoke execute on function public.undo_blank(smallint)                           from public, anon, authenticated;
 grant  execute on function public.cast_blank(smallint)                           to service_role;
