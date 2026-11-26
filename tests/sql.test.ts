@@ -26,6 +26,22 @@ function pgliteStore(pg: PGlite): VoteStore {
     async getVotedIds() {
       return (await pg.query<{ voter_id: number }>("select voter_id from participations")).rows.map((r) => r.voter_id);
     },
+    async getBlankIds() {
+      return (await pg.query<{ voter_id: number }>("select voter_id from participations where blank")).rows.map((r) => r.voter_id);
+    },
+    async castBlank(voter) {
+      try {
+        await pg.query("select cast_blank($1)", [voter]);
+        return "ok";
+      } catch (e) {
+        if ((e as { code?: string }).code === "23505") return "already_voted";
+        throw e;
+      }
+    },
+    async undoBlank(voter) {
+      const { rows } = await pg.query<{ undone: boolean }>("select undo_blank($1) as undone", [voter]);
+      return rows[0].undone ? "ok" : "not_blank";
+    },
     async registerPinFailure(id, max, mins) {
       const { rows } = await pg.query<{ attempts: number; lock_until: Date | null }>(
         "select * from register_pin_failure($1, $2, $3)",
@@ -95,6 +111,34 @@ describe("schema.sql en Postgres", () => {
     await db.query("select reset_election()");
   });
 
+  it("voto en blanco: participa sin papeleta, bloquea votar y se puede deshacer", async () => {
+    const election = createElection(pgliteStore(db), { pinRounds: 4 });
+    await election.reset();
+    const pins = new Map((await election.regeneratePins()).map((p) => [p.id, p.pin]));
+
+    // Luis (10) no se presenta: voto en blanco
+    expect(await election.markBlank(10)).toEqual({ ok: true });
+    expect(await election.markBlank(10)).toMatchObject({ ok: false, code: "already_voted" });
+    expect(await election.login(10, pins.get(10))).toMatchObject({ ok: false, code: "already_voted" });
+    expect(await election.vote(10, { first: 1, second: 2, third: 3 })).toMatchObject({ ok: false, code: "already_voted" });
+
+    // Deshacer y volver a marcar
+    expect(await election.unmarkBlank(10)).toEqual({ ok: true });
+    expect(await election.unmarkBlank(10)).toMatchObject({ ok: false, code: "not_blank" });
+    expect(await election.markBlank(10)).toEqual({ ok: true });
+
+    // Un voto real nunca se deshace ni se convierte en blanco
+    expect(await election.vote(1, { first: 10, second: 2, third: 3 })).toEqual({ ok: true });
+    expect(await election.unmarkBlank(1)).toMatchObject({ ok: false, code: "not_blank" });
+    expect(await election.markBlank(1)).toMatchObject({ ok: false, code: "already_voted" });
+
+    const s = await election.status();
+    expect([s.votedCount, s.blankCount]).toEqual([2, 1]);
+    expect((await db.query<{ n: number }>("select count(*)::int n from ballots")).rows[0].n).toBe(1);
+    await election.reset();
+    expect((await election.status()).blankCount).toBe(0);
+  });
+
   it("las papeletas no tienen ninguna columna que identifique al votante", async () => {
     const { rows } = await db.query<{ column_name: string }>(
       "select column_name from information_schema.columns where table_name = 'ballots' order by ordinal_position",
@@ -108,6 +152,8 @@ describe("schema.sql en Postgres", () => {
       await expect(db.query("select * from voters")).rejects.toThrow(/permission denied/);
       await expect(db.query("select * from ballots")).rejects.toThrow(/permission denied/);
       await expect(db.query("select reset_election()")).rejects.toThrow(/permission denied/);
+      await expect(db.query("select cast_blank(1::smallint)")).rejects.toThrow(/permission denied/);
+      await expect(db.query("select undo_blank(1::smallint)")).rejects.toThrow(/permission denied/);
       await db.exec("reset role");
     }
   });

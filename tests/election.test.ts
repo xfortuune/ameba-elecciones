@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { LOCK_MINUTES, MAX_PIN_ATTEMPTS, createElection } from "@/lib/election";
-import { runSimulation } from "@/lib/simulation";
+import { PARTICIPANTS } from "@/lib/participants";
+import { SCENARIO, runSimulation } from "@/lib/simulation";
+import { tally } from "@/lib/tally";
 import { createMemoryStore } from "@/lib/store/memory";
 import { createToken, readToken } from "@/lib/token";
 
@@ -42,6 +44,29 @@ describe("flujo completo (store en memoria)", () => {
     const res = await election.results();
     expect(res.complete).toBe(false);
     expect(JSON.stringify(res)).not.toMatch(/points|standings|threes/);
+  });
+
+  it("con 9 votos y 1 en blanco se publican los resultados y el ausente da 0 puntos", async () => {
+    const election = createElection(createMemoryStore(), { pinRounds: 4 });
+    await election.regeneratePins();
+    // Todos votan menos Luis (10); los votos de Luis del escenario no se emiten
+    for (const { voter, ballot } of SCENARIO.filter((s) => s.voter !== 10)) {
+      expect(await election.vote(voter, ballot)).toEqual({ ok: true });
+    }
+    expect((await election.results()).complete).toBe(false);
+
+    expect(await election.markBlank(10)).toEqual({ ok: true });
+    const res = await election.results();
+    expect(res.complete).toBe(true);
+    if (!res.complete) return;
+    expect(res.status.blankCount).toBe(1);
+
+    const expected = tally(PARTICIPANTS, SCENARIO.filter((s) => s.voter !== 10).map((s) => s.ballot));
+    expect(res.standings).toEqual(expected);
+    // Luis sigue siendo candidato: recibe los puntos que le dieron otros
+    expect(res.standings.find((s) => s.name === "Luis")!.points).toBe(7);
+    // El total repartido es 9 papeletas × 6 puntos
+    expect(res.standings.reduce((sum, s) => sum + s.points, 0)).toBe(54);
   });
 
   it("los PINs generados son de 4 dígitos y distintos entre sí", async () => {

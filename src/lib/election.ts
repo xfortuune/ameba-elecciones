@@ -7,11 +7,13 @@ import { tally, type Standing } from "./tally";
 export const MAX_PIN_ATTEMPTS = 5;
 export const LOCK_MINUTES = 10;
 
-export type VoterStatus = { id: number; name: string; hasVoted: boolean };
+/** hasVoted = ha participado (votando o en blanco); blank = marcado ausente por el admin. */
+export type VoterStatus = { id: number; name: string; hasVoted: boolean; blank: boolean };
 
 export type ElectionStatus = {
   total: number;
   votedCount: number;
+  blankCount: number;
   complete: boolean;
   voters: VoterStatus[];
 };
@@ -41,10 +43,18 @@ export function createElection(store: VoteStore, opts: { pinRounds?: number; now
   const now = opts.now ?? (() => new Date());
 
   async function status(): Promise<ElectionStatus> {
-    const voted = new Set(await store.getVotedIds());
-    const voters = PARTICIPANTS.map((p) => ({ id: p.id, name: p.name, hasVoted: voted.has(p.id) }));
+    const [votedIds, blankIds] = await Promise.all([store.getVotedIds(), store.getBlankIds()]);
+    const voted = new Set(votedIds);
+    const blank = new Set(blankIds);
+    const voters = PARTICIPANTS.map((p) => ({
+      id: p.id,
+      name: p.name,
+      hasVoted: voted.has(p.id),
+      blank: blank.has(p.id),
+    }));
     const votedCount = voters.filter((v) => v.hasVoted).length;
-    return { total: TOTAL_VOTERS, votedCount, complete: votedCount === TOTAL_VOTERS, voters };
+    const blankCount = voters.filter((v) => v.blank).length;
+    return { total: TOTAL_VOTERS, votedCount, blankCount, complete: votedCount === TOTAL_VOTERS, voters };
   }
 
   async function login(voterId: unknown, pin: unknown): Promise<LoginResult> {
@@ -56,7 +66,14 @@ export function createElection(store: VoteStore, opts: { pinRounds?: number; now
       return { ok: false, code: "not_ready", message: "La votación aún no está preparada (faltan los PINs)." };
     }
     if ((await store.getVotedIds()).includes(voterId)) {
-      return { ok: false, code: "already_voted", message: `${voter.name} ya ha votado. La papeleta no se puede cambiar.` };
+      const isBlank = (await store.getBlankIds()).includes(voterId);
+      return {
+        ok: false,
+        code: "already_voted",
+        message: isBlank
+          ? `${voter.name} está marcado como ausente (voto en blanco). Habla con el administrador.`
+          : `${voter.name} ya ha votado. La papeleta no se puede cambiar.`,
+      };
     }
     if (voter.lockedUntil && voter.lockedUntil > now()) {
       return {
@@ -104,7 +121,27 @@ export function createElection(store: VoteStore, opts: { pinRounds?: number; now
     return { ok: true };
   }
 
-  /** Nunca devuelve puntos ni papeletas hasta que hayan votado los 10. */
+  /** Admin: un ausente cuenta como voto en blanco (participa, 0 puntos repartidos). */
+  async function markBlank(voterId: unknown): Promise<VoteResult> {
+    if (!isParticipantId(voterId)) return { ok: false, code: "invalid", message: "Votante desconocido." };
+    const res = await store.castBlank(voterId);
+    if (res === "already_voted") {
+      return { ok: false, code: "already_voted", message: `${participantName(voterId)} ya había votado.` };
+    }
+    return { ok: true };
+  }
+
+  /** Admin: deshace un voto en blanco. Un voto real nunca se puede deshacer. */
+  async function unmarkBlank(voterId: unknown): Promise<VoteResult> {
+    if (!isParticipantId(voterId)) return { ok: false, code: "invalid", message: "Votante desconocido." };
+    const res = await store.undoBlank(voterId);
+    if (res === "not_blank") {
+      return { ok: false, code: "not_blank", message: `${participantName(voterId)} no estaba marcado en blanco.` };
+    }
+    return { ok: true };
+  }
+
+  /** Nunca devuelve puntos ni papeletas hasta que hayan votado (o estén en blanco) los 10. */
   async function results(): Promise<ResultsResponse> {
     const s = await status();
     if (!s.complete) return { complete: false, status: s };
@@ -131,6 +168,8 @@ export function createElection(store: VoteStore, opts: { pinRounds?: number; now
     status,
     login,
     vote,
+    markBlank,
+    unmarkBlank,
     results,
     regeneratePins,
     reset: () => store.resetElection(),

@@ -25,7 +25,11 @@ export function NamePicker({ voters, onPick }: { voters: VoterStatus[]; onPick: 
               <span className={`font-serif text-lg font-bold ${v.hasVoted ? "line-through decoration-1" : ""}`}>
                 {v.name}
               </span>
-              {v.hasVoted && <span className="text-xs font-semibold text-ink-soft">✓ Ya ha votado</span>}
+              {v.hasVoted && (
+                <span className="text-xs font-semibold text-ink-soft">
+                  {v.blank ? "Ausente · voto en blanco" : "✓ Ya ha votado"}
+                </span>
+              )}
             </button>
           </li>
         ))}

@@ -39,3 +39,19 @@ export async function regeneratePinsAction(): Promise<{ name: string; pin: strin
   refresh();
   return pins.map(({ name, pin }) => ({ name, pin }));
 }
+
+/** Marca a un ausente como voto en blanco (no reparte puntos). */
+export async function markBlankAction(voterId: number): Promise<{ ok: boolean; message?: string }> {
+  await requireAdmin();
+  const res = await getElection().markBlank(voterId);
+  refresh();
+  return res.ok ? { ok: true } : { ok: false, message: res.message };
+}
+
+/** Deshace un voto en blanco. */
+export async function unmarkBlankAction(voterId: number): Promise<{ ok: boolean; message?: string }> {
+  await requireAdmin();
+  const res = await getElection().unmarkBlank(voterId);
+  refresh();
+  return res.ok ? { ok: true } : { ok: false, message: res.message };
+}

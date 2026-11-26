@@ -2,12 +2,18 @@ import type { Standing } from "@/lib/tally";
 
 const MEDAL: Record<number, string> = { 1: "var(--gold)", 2: "var(--silver)", 3: "var(--bronze)" };
 
-export function StandingsTable({ standings }: { standings: Standing[] }) {
+export function StandingsTable({ standings, blankNames = [] }: { standings: Standing[]; blankNames?: string[] }) {
+  const valid = standings.length - blankNames.length;
   return (
     <section className="paper rounded-sm px-4 py-5 sm:px-6">
       <h3 className="border-b-2 border-ink pb-2 font-serif text-xl font-bold">Clasificación completa</h3>
       <p className="mt-2 text-xs text-ink-soft">
         Desempate: más votos de 3 puntos; si persiste, más votos de 2. Si aun así coinciden, comparten puesto.
+      </p>
+      <p className="mt-1 text-xs text-ink-soft">
+        {valid} {valid === 1 ? "papeleta válida" : "papeletas válidas"}
+        {blankNames.length > 0 &&
+          ` · ${blankNames.length} ${blankNames.length === 1 ? "voto en blanco" : "votos en blanco"} (ausentes: ${blankNames.join(", ")})`}
       </p>
 
       <ol className="mt-3 divide-y divide-rule">

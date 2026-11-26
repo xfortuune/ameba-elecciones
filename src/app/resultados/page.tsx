@@ -46,7 +46,12 @@ async function Results() {
     );
   }
 
-  return <ResultsReveal standings={res.standings} />;
+  return (
+    <ResultsReveal
+      standings={res.standings}
+      blankNames={res.status.voters.filter((v) => v.blank).map((v) => v.name)}
+    />
+  );
 }
 
 export default function ResultsPage() {

@@ -25,7 +25,7 @@ function readSeen(key: string): boolean {
   }
 }
 
-export function ResultsReveal({ standings }: { standings: Standing[] }) {
+export function ResultsReveal({ standings, blankNames }: { standings: Standing[]; blankNames: string[] }) {
   const [rawPhase, setPhase] = useState<Phase>("closed");
   const [count, setCount] = useState(3);
   const [rawRevealed, setRevealed] = useState(0);
@@ -124,7 +124,7 @@ export function ResultsReveal({ standings }: { standings: Standing[] }) {
 
       {phase === "final" && (
         <div className="animate-rise">
-          <StandingsTable standings={standings} />
+          <StandingsTable standings={standings} blankNames={blankNames} />
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { AdminControls, AdminLogin } from "@/components/admin/AdminClient";
+import { AdminControls, AdminLogin, VoterAdminList } from "@/components/admin/AdminClient";
 import { Masthead } from "@/components/Masthead";
 import { Progress } from "@/components/Progress";
 import { getElection } from "@/lib/server/election";
@@ -17,18 +17,12 @@ async function AdminGate() {
       <section className="paper space-y-5 rounded-sm p-6">
         <h2 className="font-serif text-xl font-bold">Estado de la votación</h2>
         <Progress voted={status.votedCount} total={status.total} />
-        <ul className="divide-y divide-rule">
-          {status.voters.map((v) => (
-            <li key={v.id} className="flex items-center justify-between py-2">
-              <span className="font-serif text-lg font-semibold">{v.name}</span>
-              {v.hasVoted ? (
-                <span className="rounded-sm bg-ink px-2 py-0.5 text-xs font-bold text-paper">✓ Ha votado</span>
-              ) : (
-                <span className="text-xs font-semibold text-ink-soft">Pendiente</span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <VoterAdminList voters={status.voters} />
+        <p className="text-xs text-ink-soft">
+          <b>Ausentes:</b> si alguien no se presenta, márcalo como <i>voto en blanco</i>. Cuenta como que ya ha
+          participado (no podrá entrar a votar), no reparte ningún punto y sigue pudiendo recibir puntos de los
+          demás. Se puede deshacer mientras no haya votado.
+        </p>
         <p className="text-xs text-ink-soft">
           Por diseño, ni siquiera el administrador puede ver a quién ha votado cada persona: las papeletas se
           guardan sin vincular al votante.

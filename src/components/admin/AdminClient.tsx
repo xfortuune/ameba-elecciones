@@ -8,7 +8,86 @@ import {
   resetElectionAction,
   type AdminLoginState,
 } from "@/app/admin/actions";
+import { markBlankAction, unmarkBlankAction } from "@/app/admin/actions";
+import type { VoterStatus } from "@/lib/election";
 import { Alert } from "../Alert";
+
+/** Lista de votantes con la opción de marcar ausentes como voto en blanco. */
+export function VoterAdminList({ voters }: { voters: VoterStatus[] }) {
+  const [pending, start] = useTransition();
+  const [confirming, setConfirming] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = (fn: () => Promise<{ ok: boolean; message?: string }>) =>
+    start(async () => {
+      setError(null);
+      try {
+        const res = await fn();
+        if (!res.ok) setError(res.message ?? "No se pudo completar la acción.");
+      } catch {
+        setError("No se pudo completar la acción. ¿Ha caducado la sesión de admin?");
+      } finally {
+        setConfirming(null);
+      }
+    });
+
+  return (
+    <div className="space-y-3">
+      {error && <Alert>{error}</Alert>}
+      <ul className="divide-y divide-rule">
+        {voters.map((v) => (
+          <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+            <span className={`font-serif text-lg font-semibold ${v.blank ? "text-ink-soft" : ""}`}>{v.name}</span>
+
+            {v.blank ? (
+              <span className="flex items-center gap-2">
+                <span className="rounded-sm border border-ink-soft px-2 py-0.5 text-xs font-bold text-ink-soft">
+                  Ausente · voto en blanco
+                </span>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => run(() => unmarkBlankAction(v.id))}
+                  className="text-xs font-semibold underline underline-offset-2 disabled:opacity-50"
+                >
+                  Deshacer
+                </button>
+              </span>
+            ) : v.hasVoted ? (
+              <span className="rounded-sm bg-ink px-2 py-0.5 text-xs font-bold text-paper">✓ Ha votado</span>
+            ) : confirming === v.id ? (
+              <span className="flex items-center gap-2">
+                <span className="text-xs font-semibold">¿No ha venido?</span>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => run(() => markBlankAction(v.id))}
+                  className="rounded-sm bg-ink px-2 py-1 text-xs font-bold text-paper disabled:opacity-50"
+                >
+                  {pending ? "…" : "Sí, voto en blanco"}
+                </button>
+                <button type="button" onClick={() => setConfirming(null)} className="text-xs underline underline-offset-2">
+                  Cancelar
+                </button>
+              </span>
+            ) : (
+              <span className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-ink-soft">Pendiente</span>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(v.id)}
+                  className="rounded-sm border-2 border-ink px-2 py-0.5 text-xs font-semibold"
+                >
+                  Marcar ausente
+                </button>
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function AdminLogin() {
   const [state, action, pending] = useActionState<AdminLoginState, FormData>(adminLoginAction, {});

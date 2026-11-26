@@ -92,6 +92,7 @@ Cada `git push` a `main` vuelve a desplegar automáticamente.
 ### Panel `/admin`
 Protegido con `ADMIN_PASSWORD` (cookie firmada de 8 h). Permite:
 - Ver quién ha votado y quién falta.
+- **Marcar ausentes (voto en blanco):** quien no se presenta cuenta como que ha participado, no reparte puntos y sigue pudiendo recibirlos. Se puede deshacer mientras no haya votado. Los resultados se publican cuando los 10 han votado o están en blanco.
 - **Regenerar PINs:** se muestran una sola vez, con botón para copiarlos.
 - **Resetear votación:** borra todos los votos y desbloquea a todo el mundo.
 
@@ -143,5 +144,6 @@ src/components/              UI (papeleta, podio, etc.)
 ```
 
 ### Notas
+- **Si actualizas la app y el esquema ha cambiado**, vuelve a ejecutar `supabase/schema.sql` entero en el SQL Editor: es seguro re-ejecutarlo y no borra votos.
 - El plan gratuito de Supabase **pausa el proyecto tras 7 días sin actividad**. Si pasa, entra en el dashboard y pulsa *Restore*.
 - Para cambiar participantes, edita `src/lib/participants.ts` y vuelve a ejecutar `npm run generate-pins`.

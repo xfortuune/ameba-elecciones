@@ -22,6 +22,8 @@ create table if not exists public.voters (
 create table if not exists public.participations (
   voter_id smallint primary key references public.voters (id) on delete cascade
 );
+-- blank = true: no se presentó y el admin lo marcó como voto en blanco (no reparte puntos).
+alter table public.participations add column if not exists blank boolean not null default false;
 
 -- ---------------------------------------------------------------------
 -- QUÉ se ha votado. A propósito NO tiene columna de votante ni fecha:
@@ -137,6 +139,40 @@ begin
 end;
 $$;
 
+-- ---------------------------------------------------------------------
+-- cast_blank: el admin marca a un ausente como voto en blanco.
+-- Cuenta como participación (no puede votar después) pero no crea papeleta.
+-- Si ya había votado, la PK lanza 23505.
+-- ---------------------------------------------------------------------
+create or replace function public.cast_blank(p_voter smallint) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into participations (voter_id, blank) values (p_voter, true);
+end;
+$$;
+
+-- ---------------------------------------------------------------------
+-- undo_blank: deshace un voto en blanco. Nunca toca un voto real.
+-- Devuelve true si había un voto en blanco que deshacer.
+-- ---------------------------------------------------------------------
+create or replace function public.undo_blank(p_voter smallint) returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  delete from participations where voter_id = p_voter and blank;
+  return found;
+end;
+$$;
+
+revoke execute on function public.cast_blank(smallint)                           from public, anon, authenticated;
+revoke execute on function public.undo_blank(smallint)                           from public, anon, authenticated;
+grant  execute on function public.cast_blank(smallint)                           to service_role;
+grant  execute on function public.undo_blank(smallint)                           to service_role;
 revoke execute on function public.cast_vote(smallint, smallint, smallint, smallint) from public, anon, authenticated;
 revoke execute on function public.register_pin_failure(smallint, int, int)       from public, anon, authenticated;
 revoke execute on function public.reset_election()                               from public, anon, authenticated;

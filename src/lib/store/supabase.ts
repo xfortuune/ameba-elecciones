@@ -40,6 +40,27 @@ export function createSupabaseStore(url: string, serviceRoleKey: string): VoteSt
       return (data ?? []).map((r) => r.voter_id as number);
     },
 
+    async getBlankIds() {
+      const { data, error } = await db.from("participations").select("voter_id").eq("blank", true);
+      if (error) fail("getBlankIds", error);
+      return (data ?? []).map((r) => r.voter_id as number);
+    },
+
+    async castBlank(voterId) {
+      const { error } = await db.rpc("cast_blank", { p_voter: voterId });
+      if (error) {
+        if (error.code === "23505") return "already_voted";
+        fail("castBlank", error);
+      }
+      return "ok";
+    },
+
+    async undoBlank(voterId) {
+      const { data, error } = await db.rpc("undo_blank", { p_voter: voterId });
+      if (error) fail("undoBlank", error);
+      return data === true ? "ok" : "not_blank";
+    },
+
     async registerPinFailure(id, max, lockMinutes) {
       const { data, error } = await db.rpc("register_pin_failure", {
         p_voter: id,
