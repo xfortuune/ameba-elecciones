@@ -27,19 +27,23 @@ export default function Home() {
 }
 
 /**
- * Dos estandartes simétricos colgando a los lados del contenido.
+ * Dos estandartes simétricos a la altura de la caja de nombres, cada uno
+ * centrado en el hueco entre el borde de la pantalla y la caja.
+ * La caja mide 42rem menos 1rem de margen por lado = 40rem.
  * Solo en pantallas anchas (lg+): en móvil no hay sitio a los lados.
  */
 function SideBanners() {
+  const gutter = "w-[calc((100%-40rem)/2)]";
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 hidden lg:block">
-      <div className="relative mx-auto max-w-2xl">
-        <div className="absolute top-8 right-full mr-6 w-28 xl:mr-12 xl:w-44">
-          <Banner className="animate-sway h-auto w-full drop-shadow-md" />
-        </div>
-        <div className="absolute top-8 left-full ml-6 w-28 xl:ml-12 xl:w-44">
-          <Banner className="animate-sway h-auto w-full drop-shadow-md [animation-direction:reverse]" />
-        </div>
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-x-0 top-56 hidden justify-between lg:flex"
+    >
+      <div className={`${gutter} flex justify-center`}>
+        <Banner className="animate-sway h-auto w-[min(72%,16rem)] drop-shadow-md" />
+      </div>
+      <div className={`${gutter} flex justify-center`}>
+        <Banner className="animate-sway h-auto w-[min(72%,16rem)] drop-shadow-md [animation-direction:reverse]" />
       </div>
     </div>
   );
