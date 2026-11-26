@@ -1,12 +1,12 @@
 import type { Standing } from "@/lib/tally";
 
 const TIERS = {
-  1: { label: "Oro", color: "var(--gold)", height: "h-40 sm:h-48", medal: "gold-shimmer", order: "order-2" },
-  2: { label: "Plata", color: "var(--silver)", height: "h-28 sm:h-36", medal: "", order: "order-1" },
+  1: { label: "Presidente", color: "var(--gold)", height: "h-40 sm:h-48", medal: "gold-shimmer", order: "order-2" },
+  2: { label: "Vicepresidente", color: "var(--silver)", height: "h-28 sm:h-36", medal: "", order: "order-1" },
   3: { label: "Bronce", color: "var(--bronze)", height: "h-20 sm:h-28", medal: "", order: "order-3" },
 } as const;
 
-/** Orden de revelado: bronce (1º paso), plata (2º), oro (3º). */
+/** Orden de revelado: bronce (1º paso), vicepresidente (2º), presidente (3º). */
 const REVEAL_STEP = { 3: 1, 2: 2, 1: 3 } as const;
 
 export function Podium({ standings, revealed }: { standings: Standing[]; revealed: number }) {
@@ -58,7 +58,7 @@ export function Podium({ standings, revealed }: { standings: Standing[]; reveale
               <span className="absolute inset-x-0 top-2 text-center font-serif text-3xl font-black text-white/90 drop-shadow sm:text-4xl">
                 {pos}º
               </span>
-              <span className="absolute inset-x-0 bottom-2 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-white/90">
+              <span className="absolute inset-x-0 bottom-2 px-1 text-center text-[8.5px] font-bold uppercase tracking-[0.06em] text-white/90 sm:text-[10px] sm:tracking-[0.15em]">
                 {tier.label}
               </span>
             </div>

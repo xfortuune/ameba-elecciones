@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import type { VoterStatus } from "@/lib/election";
 import { Alert } from "../Alert";
 import { BallotHeader, InkCross, POINTS, type Picks } from "./BallotPaper";
+import { SignaturePad } from "./SignaturePad";
 
 type Props = {
   voter: VoterStatus;
@@ -15,6 +17,8 @@ type Props = {
 };
 
 export function BallotReview({ voter, picks, names, error, submitting, onEdit, onConfirm }: Props) {
+  const [signed, setSigned] = useState(false);
+
   return (
     <div className="space-y-5">
       <div className="text-center">
@@ -43,16 +47,23 @@ export function BallotReview({ voter, picks, names, error, submitting, onEdit, o
         </div>
       </article>
 
+      <section className="paper rounded-sm px-5 py-4 sm:px-8">
+        <SignaturePad onChange={setSigned} />
+        <p className="mt-2 text-xs text-ink-soft">
+          Con tu firma confirmas que esta papeleta es tuya y que la depositas libremente.
+        </p>
+      </section>
+
       {error && <Alert>{error}</Alert>}
 
       <div className="flex flex-col gap-3 sm:flex-row-reverse">
         <button
           type="button"
           onClick={onConfirm}
-          disabled={submitting}
+          disabled={submitting || !signed}
           className="flex-1 rounded-sm bg-stamp px-4 py-3.5 font-bold uppercase tracking-wider text-white shadow disabled:opacity-50"
         >
-          {submitting ? "Depositando…" : "Depositar en la urna"}
+          {submitting ? "Depositando…" : signed ? "Depositar en la urna" : "Firma para depositar"}
         </button>
         <button
           type="button"

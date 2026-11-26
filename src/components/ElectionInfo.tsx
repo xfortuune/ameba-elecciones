@@ -5,14 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 /** Bases de la elección (del cartel oficial de AMEBA CITY). */
 const RULES: { title: string; body: React.ReactNode }[] = [
   { title: "Censo electoral", body: "10 miembros con derecho a voto." },
-  {
-    title: "Candidaturas",
-    body: (
-      <>
-        Se presenta una candidatura conjunta de <b>presidente + vicepresidente</b>.
-      </>
-    ),
-  },
+  { title: "Candidaturas", body: "Los 10 miembros son candidatos." },
   {
     title: "Sistema de votación",
     body: (
@@ -25,7 +18,7 @@ const RULES: { title: string; body: React.ReactNode }[] = [
     title: "Ganador",
     body: (
       <>
-        La candidatura con la <b>mayor puntuación total</b>.
+        El 1º en puntos será <b>Presidente</b> y el 2º, <b>Vicepresidente</b>.
       </>
     ),
   },
@@ -124,7 +117,7 @@ export function ElectionInfo() {
           <div className="mt-4 rounded-sm bg-ink px-3 py-2.5 text-paper">
             <p className="font-sans text-sm font-black uppercase tracking-wide text-gold">¡Presenta tu candidatura!</p>
             <p className="mt-0.5 text-xs leading-snug text-paper/85">
-              Prepara tu proyecto, define tus propuestas y forma tu equipo (presidente y vicepresidente).
+              Prepara tu proyecto y define tus propuestas: el más votado preside y el segundo es su vicepresidente.
             </p>
           </div>
         </div>

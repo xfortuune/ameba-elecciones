@@ -97,6 +97,7 @@ export function ResultsReveal({ standings, blankNames }: { standings: Standing[]
   }
 
   const winners = standings.filter((s) => s.position === 1);
+  const vices = standings.filter((s) => s.position === 2);
 
   return (
     <div className="space-y-8">
@@ -110,6 +111,19 @@ export function ResultsReveal({ standings, blankNames }: { standings: Standing[]
               ? `¡Empate en la presidencia!`
               : `${winners[0]?.name}, Presidente de AMEBA CITY`}
         </h2>
+        {revealed >= 3 && winners.length === 1 && vices.length > 0 && (
+          <p className="animate-rise mt-2 font-serif text-lg text-ink-soft">
+            {vices.length === 1 ? (
+              <>
+                Vicepresidente: <b className="text-ink">{vices[0].name}</b>
+              </>
+            ) : (
+              <>
+                Empate en la vicepresidencia: <b className="text-ink">{vices.map((v) => v.name).join(" y ")}</b>
+              </>
+            )}
+          </p>
+        )}
       </section>
 
       <Podium standings={standings} revealed={revealed} />

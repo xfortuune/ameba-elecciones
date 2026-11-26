@@ -44,7 +44,8 @@ type Props = {
   voter: VoterStatus;
   candidates: VoterStatus[];
   picks: Picks;
-  onChange: (p: Picks) => void;
+  /** Recibe un actualizador para no perder marcas si se pulsan varias muy rápido. */
+  onChange: (update: (prev: Picks) => Picks) => void;
   onCancel: () => void;
   onNext: () => void;
 };
@@ -54,14 +55,16 @@ export function BallotPaper({ voter, candidates, picks, onChange, onCancel, onNe
 
   /** Marcar un recuadro: cada puntuación solo puede ir a una persona y cada persona recibe una sola puntuación. */
   function toggle(candidateId: number, pts: Points) {
-    const next: Picks = { ...picks };
-    if (next[pts] === candidateId) {
-      next[pts] = null;
-    } else {
-      for (const p of POINTS) if (next[p] === candidateId) next[p] = null;
-      next[pts] = candidateId;
-    }
-    onChange(next);
+    onChange((prev) => {
+      const next: Picks = { ...prev };
+      if (next[pts] === candidateId) {
+        next[pts] = null;
+      } else {
+        for (const p of POINTS) if (next[p] === candidateId) next[p] = null;
+        next[pts] = candidateId;
+      }
+      return next;
+    });
   }
 
   const nameOf = (id: number | null) => candidates.find((c) => c.id === id)?.name;
