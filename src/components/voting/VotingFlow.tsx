@@ -5,10 +5,11 @@ import { useEffect, useState } from "react";
 import { cancelVoterSessionAction, submitVoteAction } from "@/app/actions";
 import type { VoterStatus } from "@/lib/election";
 import { Alert } from "../Alert";
+import { Banner } from "../Banner";
 import { Progress } from "../Progress";
 import { BallotPaper, type Picks } from "./BallotPaper";
 import { BallotReview } from "./BallotReview";
-import { CotizaPopup } from "./CotizaPopup";
+import { EASTER_EGGS } from "./EasterEggs";
 import { NamePicker } from "./NamePicker";
 import { PinStep } from "./PinStep";
 import { VoteCast } from "./VoteCast";
@@ -22,8 +23,6 @@ type Step =
 
 const emptyPicks: Picks = { 3: null, 2: null, 1: null };
 
-/** Easter egg: a este votante le sale el aviso de ¡COTIZA! al entrar. */
-const COTIZA_VOTER = "Valentin";
 
 export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
   const router = useRouter();
@@ -31,7 +30,8 @@ export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
   const [picks, setPicks] = useState<Picks>(emptyPicks);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cotiza, setCotiza] = useState(false);
+  /** Easter egg pendiente de mostrar (nombre del votante), ver EasterEggs.tsx. */
+  const [egg, setEgg] = useState<string | null>(null);
 
   const votedCount = voters.filter((v) => v.hasVoted).length;
 
@@ -77,6 +77,9 @@ export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
     case "choose":
       return (
         <div className="space-y-6">
+          <div className="flex justify-center">
+            <Banner className="animate-sway h-auto w-36 drop-shadow-md sm:w-44" />
+          </div>
           <Progress voted={votedCount} total={voters.length} />
           {error && <Alert>{error}</Alert>}
           <NamePicker
@@ -98,7 +101,7 @@ export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
           onSuccess={() => {
             setError(null);
             setStep({ kind: "ballot", voter: step.voter });
-            if (step.voter.name === COTIZA_VOTER) setCotiza(true);
+            if (EASTER_EGGS[step.voter.name]) setEgg(step.voter.name);
           }}
           onAlreadyVoted={() => {
             setStep({ kind: "choose" });
@@ -110,14 +113,14 @@ export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
     case "ballot":
       return (
         <>
-          {cotiza && <CotizaPopup onClose={() => setCotiza(false)} />}
+          {egg && EASTER_EGGS[egg]?.({ onClose: () => setEgg(null) })}
           <BallotPaper
             voter={step.voter}
             candidates={voters.filter((v) => v.id !== step.voter.id)}
             picks={picks}
             onChange={setPicks}
             onCancel={() => {
-              setCotiza(false);
+              setEgg(null);
               backToStart();
             }}
             onNext={() => setStep({ kind: "review", voter: step.voter })}
