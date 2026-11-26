@@ -21,6 +21,7 @@ export const EASTER_EGGS: Record<string, (props: EggProps) => ReactNode> = {
   Luis: LuisEgg,
   Ach: AchEgg,
   Kike: KikeEgg,
+  Alvarico: AlvaricoEgg,
   Fortune: (p) => <CreatorEgg {...p} name="Fortune" />,
   Bruno: (p) => <CreatorEgg {...p} name="Bruno" />,
 };
@@ -517,6 +518,68 @@ function CreatorEgg({ onClose, onGold, votedCount = 0, name }: EggProps & { name
           {confetti > 0 && <Confetti key={confetti} count={120} />}
         </div>
       )}
+    </EggModal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Alvarico: Perú
+// ---------------------------------------------------------------------------
+function PeruFlag({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 60 40" className={className} role="img" aria-label="Bandera de Perú">
+      <rect width="60" height="40" fill="#d91023" />
+      <rect x="20" width="20" height="40" fill="#fff" />
+    </svg>
+  );
+}
+
+function AlvaricoEgg({ onClose }: EggProps) {
+  const menu: [string, string][] = [
+    ["🐟", "Ceviche"],
+    ["🥤", "Inca Kola"],
+    ["🦙", "Llama"],
+    ["⛰️", "Machu Picchu"],
+  ];
+  return (
+    <EggModal onClose={onClose} labelledBy="egg-title">
+      {/* Franja con los colores de Perú */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-2.5"
+        style={{ background: "repeating-linear-gradient(90deg,#d91023 0 18px,#fff 18px 36px)" }}
+      />
+
+      <div className="mt-6 flex justify-center">
+        <PeruFlag className="animate-[wave_2.6s_ease-in-out_infinite] h-20 w-30 origin-left rounded-[2px] shadow-md ring-1 ring-rule" />
+      </div>
+
+      <h2 id="egg-title" className="mt-5 font-serif text-3xl leading-tight font-bold">
+        ¡Habla, causa!
+      </h2>
+      <p className="mt-2 text-sm text-ink-soft">
+        La Junta Electoral te saluda desde lo alto de Machu Picchu. Antes de votar, ¿un cevichito y una Inca Kola bien
+        heladita, pe?
+      </p>
+
+      <ul className="mt-5 grid grid-cols-4 gap-2" aria-label="Menú peruano">
+        {menu.map(([icon, label], i) => (
+          <li
+            key={label}
+            className="animate-rise flex flex-col items-center gap-1 rounded-sm border border-rule bg-white px-1 py-2"
+            style={{ animationDelay: `${0.3 + i * 0.12}s` }}
+          >
+            <span className="text-3xl" aria-hidden="true">
+              {icon}
+            </span>
+            <span className="text-[10px] font-semibold leading-tight">{label}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-ink-soft">Chévere · Bacán · De los Andes hasta AMEBA CITY</p>
+
+      <CloseButton onClose={onClose}>Ya, causa, a votar</CloseButton>
+      <style>{`@keyframes wave{0%,100%{transform:skewY(0deg) scaleX(1)}50%{transform:skewY(-3deg) scaleX(.97)}}`}</style>
     </EggModal>
   );
 }
