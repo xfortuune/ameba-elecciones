@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { io } from "next/cache";
 import { cookies } from "next/headers";
 import { createToken, readToken, safeEqual } from "../token";
 
@@ -41,7 +42,8 @@ export async function startVoterSession(voterId: number) {
 }
 
 export async function getVoterSession(): Promise<number | null> {
-  const token = (await cookies()).get(VOTER_COOKIE)?.value; // leer la cookie primero: hace la ruta dinámica
+  const token = (await cookies()).get(VOTER_COOKIE)?.value;
+  await io(); // lo que sigue (Date.now) nunca entra en un prerender
   const payload = readToken(secret(), token);
   const id = payload?.startsWith("v") ? Number(payload.slice(1)) : NaN;
   return Number.isInteger(id) ? id : null;
@@ -62,7 +64,8 @@ export async function startAdminSession() {
 }
 
 export async function isAdmin(): Promise<boolean> {
-  const token = (await cookies()).get(ADMIN_COOKIE)?.value; // leer la cookie primero: hace la ruta dinámica
+  const token = (await cookies()).get(ADMIN_COOKIE)?.value;
+  await io(); // lo que sigue (Date.now) nunca entra en un prerender
   return readToken(adminKey(), token) === "admin";
 }
 
