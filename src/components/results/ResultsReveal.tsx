@@ -12,12 +12,14 @@ import { StandingsTable } from "./StandingsTable";
  */
 type Phase = "closed" | "countdown" | "podium" | "final";
 
-const STORAGE_KEY = "ameba-resultados-vistos";
+/** La clave depende del resultado: tras una votación de prueba + reset, el revelado real vuelve a verse. */
+const storageKey = (standings: Standing[]) =>
+  "ameba-resultados-vistos:" + standings.map((s) => `${s.id}-${s.threes}-${s.twos}-${s.ones}`).join(",");
 
 const noopSubscribe = () => () => {};
-function readSeen(): boolean {
+function readSeen(key: string): boolean {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "1";
+    return localStorage.getItem(key) === "1";
   } catch {
     return false;
   }
@@ -29,7 +31,8 @@ export function ResultsReveal({ standings }: { standings: Standing[] }) {
   const [rawRevealed, setRevealed] = useState(0);
 
   // Si ya lo viste en este dispositivo, vas directo al final (en SSR siempre false).
-  const seen = useSyncExternalStore(noopSubscribe, readSeen, () => false);
+  const key = storageKey(standings);
+  const seen = useSyncExternalStore(noopSubscribe, () => readSeen(key), () => false);
   const phase: Phase = seen && rawPhase === "closed" ? "final" : rawPhase;
   const revealed = phase === "final" ? 3 : rawRevealed;
 
@@ -48,10 +51,10 @@ export function ResultsReveal({ standings }: { standings: Standing[] }) {
     }
     if (phase === "final") {
       try {
-        localStorage.setItem(STORAGE_KEY, "1");
+        localStorage.setItem(key, "1");
       } catch {}
     }
-  }, [phase, count, revealed]);
+  }, [phase, count, revealed, key]);
 
   function skip() {
     setRevealed(3);
