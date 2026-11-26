@@ -13,7 +13,7 @@ export function StandingsTable({ standings, blankNames = [] }: { standings: Stan
       <p className="mt-1 text-xs text-ink-soft">
         {valid} {valid === 1 ? "papeleta válida" : "papeletas válidas"}
         {blankNames.length > 0 &&
-          ` · ${blankNames.length} ${blankNames.length === 1 ? "voto en blanco" : "votos en blanco"} (ausentes: ${blankNames.join(", ")})`}
+          ` · ${blankNames.length} ${blankNames.length === 1 ? "voto en blanco" : "votos en blanco"} (ausentes: ${blankNames.join(", ")}) → +1 punto al más votado por cada uno`}
       </p>
 
       <ol className="mt-3 divide-y divide-rule">
@@ -42,6 +42,14 @@ export function StandingsTable({ standings, blankNames = [] }: { standings: Stan
                 <Breakdown pts={3} n={s.threes} />
                 <Breakdown pts={2} n={s.twos} />
                 <Breakdown pts={1} n={s.ones} />
+                {s.bonus > 0 && (
+                  <span
+                    className="rounded-sm bg-gold/25 px-1.5 py-0.5"
+                    title={`+${s.bonus} por votos en blanco de ausentes`}
+                  >
+                    <b className="text-ink">+{s.bonus}</b> {s.bonus === 1 ? "ausente" : "ausentes"}
+                  </span>
+                )}
               </p>
             </div>
             <div className="text-right">

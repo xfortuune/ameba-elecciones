@@ -64,6 +64,29 @@ describe("tally", () => {
     ]);
   });
 
+  it("cada voto en blanco da +1 punto al más votado sin cambiar el desglose", () => {
+    const ballots: Ballot[] = [
+      { first: 1, second: 2, third: 3 },
+      { first: 1, second: 3, third: 2 },
+    ];
+    const rows = tally(P, ballots, 2);
+    expect(rows[0]).toMatchObject({ name: "A", points: 8, threes: 2, bonus: 2, position: 1 });
+    expect(rows.slice(1).every((r) => r.bonus === 0)).toBe(true);
+  });
+
+  it("si hay empate total en el 1º, el punto del ausente va a cada empatado", () => {
+    const ballots: Ballot[] = [
+      { first: 1, second: 3, third: 4 },
+      { first: 2, second: 4, third: 3 },
+    ];
+    // A: 3 · B: 3 (idénticos) · C: 2+1 = 3 (sin votos de 3) · D: 1+2 = 3
+    const rows = tally(P, ballots, 1);
+    const top = rows.filter((r) => r.position === 1);
+    expect(top.map((r) => r.name)).toEqual(["A", "B"]);
+    expect(top.every((r) => r.points === 4 && r.bonus === 1 && r.tied)).toBe(true);
+    expect(rows.filter((r) => r.position > 1).every((r) => r.bonus === 0)).toBe(true);
+  });
+
   it("sin votos todos empatan en el 1º", () => {
     const rows = tally(P, []);
     expect(rows.every((r) => r.position === 1 && r.tied)).toBe(true);

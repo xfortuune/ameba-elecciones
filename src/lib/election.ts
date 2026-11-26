@@ -121,7 +121,7 @@ export function createElection(store: VoteStore, opts: { pinRounds?: number; now
     return { ok: true };
   }
 
-  /** Admin: un ausente cuenta como voto en blanco (participa, 0 puntos repartidos). */
+  /** Admin: un ausente cuenta como voto en blanco (participa; da +1 al más votado en el recuento). */
   async function markBlank(voterId: unknown): Promise<VoteResult> {
     if (!isParticipantId(voterId)) return { ok: false, code: "invalid", message: "Votante desconocido." };
     const res = await store.castBlank(voterId);
@@ -146,7 +146,7 @@ export function createElection(store: VoteStore, opts: { pinRounds?: number; now
     const s = await status();
     if (!s.complete) return { complete: false, status: s };
     const ballots = await store.getBallots();
-    return { complete: true, status: s, standings: tally(PARTICIPANTS, ballots) };
+    return { complete: true, status: s, standings: tally(PARTICIPANTS, ballots, s.blankCount) };
   }
 
   /** Genera PINs nuevos para todos, guarda solo el hash y devuelve los PINs en claro una vez. */

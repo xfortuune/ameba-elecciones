@@ -17,7 +17,7 @@ export interface VoteStore {
   getVotedIds(): Promise<number[]>;
   /** Solo los marcados como ausentes (voto en blanco). */
   getBlankIds(): Promise<number[]>;
-  /** Marca a un ausente como voto en blanco: participa pero no reparte puntos. */
+  /** Marca a un ausente como voto en blanco: participa sin papeleta (el recuento le da +1 al más votado). */
   castBlank(voterId: number): Promise<"ok" | "already_voted">;
   /** Deshace un voto en blanco (nunca un voto real). */
   undoBlank(voterId: number): Promise<"ok" | "not_blank">;

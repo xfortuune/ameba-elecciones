@@ -10,6 +10,8 @@ export type Standing = {
   threes: number;
   twos: number;
   ones: number;
+  /** Puntos extra por votos en blanco (cada ausente da +1 al más votado). */
+  bonus: number;
   /** Posición (1 = primero). Los empatados comparten posición: 1, 2, 2, 4… */
   position: number;
   /** true si comparte posición con alguien. */
@@ -20,12 +22,19 @@ export type Standing = {
  * Recuento y clasificación.
  * Orden: puntos totales → nº de votos de 3 → nº de votos de 2.
  * Si todo coincide, comparten posición y se marcan como empate.
+ *
+ * Votos en blanco (ausentes): cada uno da +1 punto a quien quede 1º con los
+ * votos reales. Si varios comparten el 1º puesto, el punto va a cada uno.
  */
-export function tally(participants: readonly Participant[], ballots: readonly Ballot[]): Standing[] {
+export function tally(
+  participants: readonly Participant[],
+  ballots: readonly Ballot[],
+  blankVotes = 0,
+): Standing[] {
   const rows = new Map<number, Standing>(
     participants.map((p) => [
       p.id,
-      { id: p.id, name: p.name, points: 0, threes: 0, twos: 0, ones: 0, position: 0, tied: false },
+      { id: p.id, name: p.name, points: 0, threes: 0, twos: 0, ones: 0, bonus: 0, position: 0, tied: false },
     ]),
   );
 
@@ -58,6 +67,16 @@ export function tally(participants: readonly Participant[], ballots: readonly Ba
       (i > 0 && sameRank(sorted[i - 1], row)) ||
       (i < sorted.length - 1 && sameRank(sorted[i + 1], row));
   });
+
+  // El más votado sigue siendo 1º tras sumar el bonus, así que el orden no cambia.
+  if (blankVotes > 0) {
+    for (const row of sorted) {
+      if (row.position === 1) {
+        row.bonus = blankVotes;
+        row.points += blankVotes;
+      }
+    }
+  }
 
   return sorted;
 }

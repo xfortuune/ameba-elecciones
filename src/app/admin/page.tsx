@@ -20,8 +20,8 @@ async function AdminGate() {
         <VoterAdminList voters={status.voters} />
         <p className="text-xs text-ink-soft">
           <b>Ausentes:</b> si alguien no se presenta, márcalo como <i>voto en blanco</i>. Cuenta como que ya ha
-          participado (no podrá entrar a votar), no reparte ningún punto y sigue pudiendo recibir puntos de los
-          demás. Se puede deshacer mientras no haya votado.
+          participado (no podrá entrar a votar) y su voto da <b>+1 punto al más votado</b>. Sigue pudiendo recibir
+          puntos de los demás. Se puede deshacer mientras no haya votado.
         </p>
         <p className="text-xs text-ink-soft">
           Por diseño, ni siquiera el administrador puede ver a quién ha votado cada persona: las papeletas se

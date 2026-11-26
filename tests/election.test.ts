@@ -46,7 +46,7 @@ describe("flujo completo (store en memoria)", () => {
     expect(JSON.stringify(res)).not.toMatch(/points|standings|threes/);
   });
 
-  it("con 9 votos y 1 en blanco se publican los resultados y el ausente da 0 puntos", async () => {
+  it("con 9 votos y 1 en blanco se publican los resultados y el ausente da +1 al más votado", async () => {
     const election = createElection(createMemoryStore(), { pinRounds: 4 });
     await election.regeneratePins();
     // Todos votan menos Luis (10); los votos de Luis del escenario no se emiten
@@ -61,12 +61,14 @@ describe("flujo completo (store en memoria)", () => {
     if (!res.complete) return;
     expect(res.status.blankCount).toBe(1);
 
-    const expected = tally(PARTICIPANTS, SCENARIO.filter((s) => s.voter !== 10).map((s) => s.ballot));
+    const expected = tally(PARTICIPANTS, SCENARIO.filter((s) => s.voter !== 10).map((s) => s.ballot), 1);
     expect(res.standings).toEqual(expected);
     // Luis sigue siendo candidato: recibe los puntos que le dieron otros
     expect(res.standings.find((s) => s.name === "Luis")!.points).toBe(7);
-    // El total repartido es 9 papeletas × 6 puntos
-    expect(res.standings.reduce((sum, s) => sum + s.points, 0)).toBe(54);
+    // Kike es el más votado (15) y recibe el punto del ausente
+    expect(res.standings[0]).toMatchObject({ name: "Kike", points: 16, bonus: 1, threes: 5 });
+    // Total: 9 papeletas × 6 puntos + 1 punto del ausente
+    expect(res.standings.reduce((sum, s) => sum + s.points, 0)).toBe(55);
   });
 
   it("los PINs generados son de 4 dígitos y distintos entre sí", async () => {

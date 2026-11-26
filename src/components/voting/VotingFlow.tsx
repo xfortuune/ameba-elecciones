@@ -8,6 +8,7 @@ import { Alert } from "../Alert";
 import { Progress } from "../Progress";
 import { BallotPaper, type Picks } from "./BallotPaper";
 import { BallotReview } from "./BallotReview";
+import { CotizaPopup } from "./CotizaPopup";
 import { NamePicker } from "./NamePicker";
 import { PinStep } from "./PinStep";
 import { VoteCast } from "./VoteCast";
@@ -21,12 +22,16 @@ type Step =
 
 const emptyPicks: Picks = { 3: null, 2: null, 1: null };
 
+/** Easter egg: a este votante le sale el aviso de ¡COTIZA! al entrar. */
+const COTIZA_VOTER = "Valentin";
+
 export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>({ kind: "choose" });
   const [picks, setPicks] = useState<Picks>(emptyPicks);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cotiza, setCotiza] = useState(false);
 
   const votedCount = voters.filter((v) => v.hasVoted).length;
 
@@ -93,6 +98,7 @@ export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
           onSuccess={() => {
             setError(null);
             setStep({ kind: "ballot", voter: step.voter });
+            if (step.voter.name === COTIZA_VOTER) setCotiza(true);
           }}
           onAlreadyVoted={() => {
             setStep({ kind: "choose" });
@@ -103,14 +109,20 @@ export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
 
     case "ballot":
       return (
-        <BallotPaper
-          voter={step.voter}
-          candidates={voters.filter((v) => v.id !== step.voter.id)}
-          picks={picks}
-          onChange={setPicks}
-          onCancel={backToStart}
-          onNext={() => setStep({ kind: "review", voter: step.voter })}
-        />
+        <>
+          {cotiza && <CotizaPopup onClose={() => setCotiza(false)} />}
+          <BallotPaper
+            voter={step.voter}
+            candidates={voters.filter((v) => v.id !== step.voter.id)}
+            picks={picks}
+            onChange={setPicks}
+            onCancel={() => {
+              setCotiza(false);
+              backToStart();
+            }}
+            onNext={() => setStep({ kind: "review", voter: step.voter })}
+          />
+        </>
       );
 
     case "review":
