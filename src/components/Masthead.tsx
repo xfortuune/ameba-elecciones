@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ElectionInfo } from "./ElectionInfo";
 import { Seal } from "./Seal";
 
 /** Cabecera oficial: sello + título, como el encabezado de una papeleta. */
@@ -7,11 +8,14 @@ export function Masthead({ subtitle }: { subtitle?: string }) {
     <header className="w-full">
       <div className="h-2 w-full bg-stamp" />
       <div className="h-1 w-full bg-gold" />
-      <div className="mx-auto flex max-w-2xl items-center gap-4 px-4 pt-6 pb-2">
+      <div className="relative mx-auto flex max-w-2xl items-center gap-4 px-4 pt-6 pb-2">
         <Link href="/" className="shrink-0 text-stamp" aria-label="Inicio">
           <Seal size={72} />
         </Link>
-        <div className="min-w-0">
+        <div className="absolute top-3 right-3">
+          <ElectionInfo />
+        </div>
+        <div className="min-w-0 pr-6">
           <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-ink-soft">AMEBA CITY</p>
           <h1 className="font-serif text-2xl leading-tight font-bold sm:text-3xl">
             Elecciones a Presidente del Grupo
@@ -34,7 +38,7 @@ export function Footer() {
       <p className="mt-4">
         Diseñado por Fortune y Bruno (
         <a
-          href="https://infielesapps.com"
+          href="https://www.instagram.com/nataliamari02/"
           target="_blank"
           rel="noopener noreferrer"
           className="font-semibold underline underline-offset-2"
