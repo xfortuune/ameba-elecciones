@@ -8,7 +8,7 @@ import { Alert } from "../Alert";
 import { Progress } from "../Progress";
 import { BallotPaper, type Picks } from "./BallotPaper";
 import { BallotReview } from "./BallotReview";
-import { EASTER_EGGS } from "./EasterEggs";
+import { EASTER_EGGS, EasterEgg } from "./EasterEggs";
 import { NamePicker } from "./NamePicker";
 import { PinStep } from "./PinStep";
 import { VoteCast } from "./VoteCast";
@@ -109,7 +109,7 @@ export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
     case "ballot":
       return (
         <>
-          {egg && EASTER_EGGS[egg]?.({ onClose: () => setEgg(null) })}
+          {egg && <EasterEgg name={egg} onClose={() => setEgg(null)} />}
           <BallotPaper
             voter={step.voter}
             candidates={voters.filter((v) => v.id !== step.voter.id)}

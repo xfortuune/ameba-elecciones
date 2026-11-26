@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 /**
  * Easter eggs: popups que salen a ciertos votantes justo después de meter
@@ -13,17 +13,30 @@ export const EASTER_EGGS: Record<string, (props: EggProps) => ReactNode> = {
   Valentin: CotizaEgg,
   Luis: LuisEgg,
   Ach: AchEgg,
+  Kike: KikeEgg,
 };
+
+/** Pinta el easter egg de ese votante como componente (puede tener estado propio). */
+export function EasterEgg({ name, onClose }: { name: string; onClose: () => void }) {
+  const Egg = EASTER_EGGS[name];
+  return Egg ? <Egg onClose={onClose} /> : null;
+}
 
 // ---------------------------------------------------------------------------
 // Base común: fondo oscuro, tarjeta de papel, Escape o clic fuera para cerrar.
 // ---------------------------------------------------------------------------
-function EggModal({ onClose, labelledBy, children }: EggProps & { labelledBy: string; children: ReactNode }) {
+function EggModal({
+  onClose,
+  labelledBy,
+  children,
+  dismissible = true,
+}: EggProps & { labelledBy: string; children: ReactNode; dismissible?: boolean }) {
   useEffect(() => {
+    if (!dismissible) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, dismissible]);
 
   return (
     <div
@@ -31,7 +44,7 @@ function EggModal({ onClose, labelledBy, children }: EggProps & { labelledBy: st
       aria-modal="true"
       aria-labelledby={labelledBy}
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 px-4 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={dismissible ? onClose : undefined}
     >
       <div
         className="paper animate-pop relative w-full max-w-sm overflow-hidden rounded-sm px-6 pt-8 pb-6 text-center"
@@ -200,6 +213,175 @@ function AchEgg({ onClose }: EggProps) {
 
       <CloseButton onClose={onClose}>Yalla, a votar</CloseButton>
       <style>{`@keyframes wave{0%,100%{transform:skewY(0deg) scaleX(1)}50%{transform:skewY(-3deg) scaleX(.97)}}`}</style>
+    </EggModal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Kike: recordatorio de su alopecia, en 6 avisos seguidos. No se puede saltar
+// con Escape ni tocando fuera: hay que pasarlos todos.
+// ---------------------------------------------------------------------------
+function BaldCaricature({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 120 120" className={className} role="img" aria-label="Caricatura de una cabeza calva con bigote">
+      {/* Orejas */}
+      <ellipse cx="24" cy="66" rx="7" ry="10" fill="#e9b48f" />
+      <ellipse cx="96" cy="66" rx="7" ry="10" fill="#e9b48f" />
+      {/* Cabeza */}
+      <ellipse cx="60" cy="60" rx="36" ry="44" fill="#f1c29d" />
+      {/* Brillo de la calva */}
+      <ellipse cx="46" cy="28" rx="11" ry="6" fill="#fff" opacity="0.85" transform="rotate(-20 46 28)" />
+      <ellipse cx="62" cy="22" rx="4" ry="2.5" fill="#fff" opacity="0.7" />
+      {/* Los últimos pelos de los lados */}
+      <path d="M26,58 q3,-10 8,-14 M28,64 q2,-9 7,-13" stroke="#3b2a1e" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+      <path d="M94,58 q-3,-10 -8,-14 M92,64 q-2,-9 -7,-13" stroke="#3b2a1e" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+      {/* Cejas y ojos */}
+      <path d="M40,56 q7,-5 14,0 M66,56 q7,-5 14,0" stroke="#3b2a1e" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+      <circle cx="47" cy="63" r="3.4" fill="#2b3f63" />
+      <circle cx="73" cy="63" r="3.4" fill="#2b3f63" />
+      {/* Nariz */}
+      <path d="M60,66 q-5,12 0,15" stroke="#c98d67" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* Bigotazo */}
+      <path d="M38,88 Q48,78 60,84 Q72,78 82,88 Q72,86 60,90 Q48,86 38,88 Z" fill="#3b2a1e" />
+      {/* Boca */}
+      <path d="M52,95 q8,4 16,0" stroke="#b5655a" strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* Destellos */}
+      <g fill="var(--gold)" className="animate-pulse">
+        <path d="M18,22 l2,5 l5,2 l-5,2 l-2,5 l-2,-5 l-5,-2 l5,-2 Z" />
+        <path d="M100,14 l1.5,4 l4,1.5 l-4,1.5 l-1.5,4 l-1.5,-4 l-4,-1.5 l4,-1.5 Z" />
+        <path d="M104,40 l1,3 l3,1 l-3,1 l-1,3 l-1,-3 l-3,-1 l3,-1 Z" />
+      </g>
+    </svg>
+  );
+}
+
+function NextButton({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      autoFocus
+      className="mt-6 w-full rounded-sm bg-ink px-4 py-3 font-bold uppercase tracking-wider text-paper"
+    >
+      {children}
+    </button>
+  );
+}
+
+const KIKE_DENIALS = ["Respuesta incorrecta. Inténtalo otra vez.", "La Junta no acepta mentiras.", "Kike…", "KIKE."];
+
+function KikeEgg({ onClose }: EggProps) {
+  const [step, setStep] = useState(0);
+  const [denied, setDenied] = useState(0);
+  const next = () => setStep((s) => s + 1);
+
+  const screens: ReactNode[] = [
+    <>
+      <h2
+        id="egg-title"
+        className="animate-stamp mx-auto mt-6 w-fit rounded border-[4px] border-stamp px-4 py-1.5 font-sans text-3xl font-black tracking-wider text-stamp"
+      >
+        ¡ALERTA!
+      </h2>
+      <p className="mt-5 text-sm text-ink-soft">
+        Kike, los sensores de la Junta Electoral han detectado un <b className="text-ink">reflejo cegador</b> delante
+        de la pantalla.
+      </p>
+      <NextButton onClick={next}>¿Qué reflejo?</NextButton>
+    </>,
+    <>
+      <BaldCaricature className="mx-auto mt-5 h-36 w-36" />
+      <h2 id="egg-title" className="mt-3 font-serif text-3xl font-bold">
+        Es tu cabeza ✨
+      </h2>
+      <p className="mt-2 text-sm text-ink-soft">Bájale el brillo, que no vemos la papeleta.</p>
+      <NextButton onClick={next}>Muy gracioso</NextButton>
+    </>,
+    <>
+      <h2 id="egg-title" className="mt-6 font-serif text-2xl font-bold">
+        Informe capilar oficial
+      </h2>
+      <div className="mt-5 text-left">
+        <div className="flex justify-between text-xs font-bold uppercase tracking-wider text-ink-soft">
+          <span>Pelo restante</span>
+          <span className="text-stamp">3 %</span>
+        </div>
+        <div className="mt-1.5 h-3 overflow-hidden rounded-full border border-rule bg-paper-edge">
+          <div className="h-full w-[3%] bg-stamp" />
+        </div>
+        <p className="mt-3 text-xs text-ink-soft">
+          Estado: <b className="text-ink">calvo</b> · Tendencia: <b className="text-ink">más calvo</b>
+        </p>
+      </div>
+      <NextButton onClick={next}>Ya lo sé</NextButton>
+    </>,
+    <>
+      <p className="mt-6 text-5xl" aria-hidden="true">
+        🧴
+      </p>
+      <h2 id="egg-title" className="mt-3 font-serif text-2xl font-bold">
+        Dato curioso
+      </h2>
+      <p className="mt-2 text-sm text-ink-soft">
+        Un bote de champú te dura <b className="text-ink">tres legislaturas</b>. Más que cualquier presidente.
+      </p>
+      <NextButton onClick={next}>…</NextButton>
+    </>,
+    <>
+      <p className="mt-6 text-5xl" aria-hidden="true">
+        ✈️
+      </p>
+      <h2 id="egg-title" className="mt-3 font-serif text-2xl font-bold">
+        Tarjeta de embarque
+      </h2>
+      <div className="mt-4 rounded-sm border-2 border-dashed border-ink bg-white p-3 text-left font-mono text-xs leading-relaxed">
+        <p>PASAJERO: KIKE</p>
+        <p>DESTINO: ESTAMBUL (IST)</p>
+        <p>MOTIVO: INJERTO CAPILAR</p>
+        <p>BILLETE: SOLO IDA HASTA QUE CREZCA</p>
+      </div>
+      <NextButton onClick={next}>No pienso ir</NextButton>
+    </>,
+    <>
+      <h2 id="egg-title" className="mt-6 font-serif text-2xl font-bold">
+        Última comprobación antes de votar
+      </h2>
+      <p className="mt-2 text-base text-ink-soft">¿Sigues calvo?</p>
+      {denied > 0 && (
+        <p key={denied} className="animate-pop mt-3 text-sm font-bold text-stamp">
+          {KIKE_DENIALS[Math.min(denied, KIKE_DENIALS.length) - 1]}
+        </p>
+      )}
+      <div className="mt-6 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          autoFocus
+          className="flex-1 rounded-sm bg-ink px-4 py-3 font-bold uppercase tracking-wider text-paper"
+        >
+          Sí, soy calvo
+        </button>
+        <button
+          type="button"
+          onClick={() => setDenied((d) => d + 1)}
+          className="rounded-sm border-2 border-ink px-3 py-2 font-semibold transition-all"
+          style={{ transform: `scale(${Math.max(0.4, 1 - denied * 0.2)})`, opacity: Math.max(0.35, 1 - denied * 0.2) }}
+        >
+          No
+        </button>
+      </div>
+    </>,
+  ];
+  const total = screens.length;
+
+  return (
+    <EggModal onClose={onClose} labelledBy="egg-title" dismissible={false}>
+      <p className="mt-1 text-[10px] font-bold tracking-widest text-ink-soft/70">
+        AVISO {Math.min(step + 1, total)} DE {total}
+      </p>
+      <div key={step} className="animate-rise [animation-duration:0.35s]">
+        {screens[Math.min(step, total - 1)]}
+      </div>
     </EggModal>
   );
 }
