@@ -16,6 +16,9 @@ type Props = {
   onConfirm: () => void;
 };
 
+/** Easter egg: a estos votantes la firma se les autoescribe y no la pueden cambiar. */
+const FORCED_SIGNATURES: Record<string, string> = { Kike: "soy calvo" };
+
 export function BallotReview({ voter, picks, names, error, submitting, onEdit, onConfirm }: Props) {
   const [signed, setSigned] = useState(false);
 
@@ -48,7 +51,7 @@ export function BallotReview({ voter, picks, names, error, submitting, onEdit, o
       </article>
 
       <section className="paper rounded-sm px-5 py-4 sm:px-8">
-        <SignaturePad onChange={setSigned} />
+        <SignaturePad onChange={setSigned} forcedText={FORCED_SIGNATURES[voter.name]} />
         <p className="mt-2 text-xs text-ink-soft">
           Con tu firma confirmas que esta papeleta es tuya y que la depositas libremente.
         </p>

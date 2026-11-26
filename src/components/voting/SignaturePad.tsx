@@ -9,14 +9,58 @@ const INK = "#1b2a6b";
 /**
  * Recuadro de firma: se dibuja manteniendo pulsado el ratón o con el dedo.
  * Llama a onChange(true) cuando hay trazo suficiente.
+ *
+ * forcedText (easter egg): al tocar el recuadro, la firma se "autoescribe"
+ * con ese texto letra a letra y ya no se puede cambiar ni borrar.
  */
-export function SignaturePad({ onChange }: { onChange: (signed: boolean) => void }) {
+export function SignaturePad({
+  onChange,
+  forcedText,
+}: {
+  onChange: (signed: boolean) => void;
+  forcedText?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
   const ink = useRef(0);
   const [signed, setSigned] = useState(false);
   const [empty, setEmpty] = useState(true);
+  const autoWriting = useRef(false);
+
+  /** Escribe forcedText letra a letra con letra de mano y bloquea la firma. */
+  function autoWrite(canvas: HTMLCanvasElement) {
+    if (!forcedText || autoWriting.current) return;
+    autoWriting.current = true;
+    setEmpty(false);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const { width, height } = canvas.getBoundingClientRect();
+    const size = Math.min(44, height * 0.38);
+    ctx.font = `italic ${size}px "Segoe Script", "Brush Script MT", "Snell Roundhand", "Comic Sans MS", cursive`;
+    ctx.textBaseline = "alphabetic";
+    const total = ctx.measureText(forcedText).width;
+    const x0 = Math.max(36, (width - total) / 2);
+    const y = height - 30;
+    let i = 0;
+    const step = () => {
+      i += 1;
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillText(forcedText.slice(0, i), x0, y);
+      if (i < forcedText.length) {
+        setTimeout(step, 110);
+      } else {
+        // Subrayado final de "firma"
+        ctx.beginPath();
+        ctx.moveTo(x0, y + 8);
+        ctx.quadraticCurveTo(x0 + total / 2, y + 16, x0 + total + 10, y + 4);
+        ctx.stroke();
+        setSigned(true);
+        onChange(true);
+      }
+    };
+    step();
+  }
 
   // Ajusta la resolución al tamaño real y a la densidad de la pantalla.
   useEffect(() => {
@@ -41,6 +85,7 @@ export function SignaturePad({ onChange }: { onChange: (signed: boolean) => void
     const onResize = () => {
       resize();
       ink.current = 0;
+      autoWriting.current = false;
       setEmpty(true);
       setSigned(false);
       onChange(false);
@@ -56,6 +101,7 @@ export function SignaturePad({ onChange }: { onChange: (signed: boolean) => void
 
   function down(e: React.PointerEvent<HTMLCanvasElement>) {
     e.preventDefault();
+    if (forcedText) return autoWrite(e.currentTarget);
     e.currentTarget.setPointerCapture(e.pointerId);
     drawing.current = true;
     const p = point(e);
@@ -68,7 +114,7 @@ export function SignaturePad({ onChange }: { onChange: (signed: boolean) => void
   }
 
   function move(e: React.PointerEvent<HTMLCanvasElement>) {
-    if (!drawing.current || !last.current) return;
+    if (forcedText || !drawing.current || !last.current) return;
     const ctx = e.currentTarget.getContext("2d");
     if (!ctx) return;
     const p = point(e);
@@ -109,7 +155,8 @@ export function SignaturePad({ onChange }: { onChange: (signed: boolean) => void
         <button
           type="button"
           onClick={clear}
-          disabled={empty}
+          disabled={empty || Boolean(forcedText)}
+          hidden={Boolean(forcedText)}
           className="text-xs font-semibold text-ink-soft underline underline-offset-2 disabled:opacity-30"
         >
           Borrar
@@ -136,7 +183,7 @@ export function SignaturePad({ onChange }: { onChange: (signed: boolean) => void
           </p>
         )}
       </div>
-      {!empty && !signed && <p className="mt-1 text-xs text-stamp">Sigue firmando: eso es muy corto para una firma.</p>}
+      {!empty && !signed && !forcedText && <p className="mt-1 text-xs text-stamp">Sigue firmando: eso es muy corto para una firma.</p>}
     </div>
   );
 }

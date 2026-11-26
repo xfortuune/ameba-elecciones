@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Libre_Franklin, Source_Serif_4 } from "next/font/google";
+import { MusicProvider } from "@/components/music/MusicProvider";
 import "./globals.css";
 
 const franklin = Libre_Franklin({ variable: "--font-franklin", subsets: ["latin"] });
@@ -39,7 +40,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${franklin.variable} ${serif.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <MusicProvider>{children}</MusicProvider>
+      </body>
     </html>
   );
 }

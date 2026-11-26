@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ElectionInfo } from "./ElectionInfo";
+import { MusicToggle } from "./music/MusicToggle";
 import { Seal } from "./Seal";
 
 /** Cabecera oficial: sello + título, como el encabezado de una papeleta. */
@@ -12,10 +13,11 @@ export function Masthead({ subtitle }: { subtitle?: string }) {
         <Link href="/" className="shrink-0 text-stamp" aria-label="Inicio">
           <Seal size={72} />
         </Link>
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+          <MusicToggle />
           <ElectionInfo />
         </div>
-        <div className="min-w-0 pr-6">
+        <div className="min-w-0 pr-14">
           <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-ink-soft">AMEBA CITY</p>
           <h1 className="font-serif text-2xl leading-tight font-bold sm:text-3xl">
             Elecciones a Presidente del Grupo
