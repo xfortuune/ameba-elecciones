@@ -5,6 +5,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 /** Canción de fondo: "Dont Call Me More" (xFortuune), desde el 0:09. */
 const VIDEO_ID = "T5tqvSxexJk";
 const START_SECONDS = 9;
+/** Volumen de fondo (0–100): a media potencia para no robar protagonismo. */
+const BACKGROUND_VOLUME = 50;
 const STORAGE_KEY = "ameba-musica-silenciada";
 
 // Tipos mínimos de la YouTube IFrame API
@@ -12,6 +14,7 @@ type YTPlayer = {
   playVideo(): void;
   pauseVideo(): void;
   mute(): void;
+  setVolume(volume: number): void;
   unMute(): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getPlayerState(): number;
@@ -92,6 +95,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       const p = playerRef.current;
       if (p && !mutedRef.current) {
         p.unMute();
+        p.setVolume(BACKGROUND_VOLUME);
         p.playVideo();
       }
     };
@@ -116,11 +120,13 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         },
         events: {
           onReady: ({ target }) => {
+            target.setVolume(BACKGROUND_VOLUME);
             if (mutedRef.current) {
               target.mute();
               target.pauseVideo();
             } else {
               target.unMute();
+              target.setVolume(BACKGROUND_VOLUME);
               target.playVideo();
             }
           },
@@ -162,6 +168,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       p.pauseVideo();
     } else {
       p.unMute();
+      p.setVolume(BACKGROUND_VOLUME);
       p.playVideo();
     }
   }, []);
