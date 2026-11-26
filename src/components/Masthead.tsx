@@ -38,7 +38,7 @@ export function Footer() {
         <Link href="/resultados">Resultados</Link>
       </nav>
       <p className="mt-4">
-        Diseñado por Fortune y Bruno (
+        Diseñado por Fortune + Bruno <span aria-hidden="true">🔥</span>{" "}
         <a
           href="https://www.instagram.com/nataliamari02/"
           target="_blank"
@@ -47,7 +47,6 @@ export function Footer() {
         >
           InfielesApps.com
         </a>
-        )
       </p>
     </footer>
   );
