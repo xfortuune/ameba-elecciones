@@ -31,6 +31,18 @@ export function Footer() {
         <Link href="/">Votar</Link>
         <Link href="/resultados">Resultados</Link>
       </nav>
+      <p className="mt-4">
+        Diseñado por Fortune y Bruno (
+        <a
+          href="https://infielesapps.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold underline underline-offset-2"
+        >
+          InfielesApps.com
+        </a>
+        )
+      </p>
     </footer>
   );
 }
