@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { cancelVoterSessionAction, submitVoteAction } from "@/app/actions";
 import type { VoterStatus } from "@/lib/election";
 import { Alert } from "../Alert";
-import { Banner } from "../Banner";
 import { Progress } from "../Progress";
 import { BallotPaper, type Picks } from "./BallotPaper";
 import { BallotReview } from "./BallotReview";
@@ -77,9 +76,6 @@ export function VotingFlow({ voters }: { voters: VoterStatus[] }) {
     case "choose":
       return (
         <div className="space-y-6">
-          <div className="flex justify-center">
-            <Banner className="animate-sway h-auto w-36 drop-shadow-md sm:w-44" />
-          </div>
           <Progress voted={votedCount} total={voters.length} />
           {error && <Alert>{error}</Alert>}
           <NamePicker
