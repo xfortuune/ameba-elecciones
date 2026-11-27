@@ -5,8 +5,8 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 /** Canción de fondo: "Dont Call Me More" (xFortuune), desde el 0:09. */
 const VIDEO_ID = "T5tqvSxexJk";
 const START_SECONDS = 9;
-/** Volumen de fondo (0–100): a media potencia para no robar protagonismo. */
-const BACKGROUND_VOLUME = 50;
+/** Volumen de fondo (0–100): muy bajo, solo de ambiente. */
+const BACKGROUND_VOLUME = 15;
 const STORAGE_KEY = "ameba-musica-silenciada";
 
 // Tipos mínimos de la YouTube IFrame API
